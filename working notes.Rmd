@@ -1,0 +1,283 @@
+---
+title: "JI manipulation and protest notes"
+output: html_notebook
+---
+(Another approach to this could make use of Lankina data on Russian protest, with some indicator of judicial independence)
+Thinking that the first step is to link NELDA with V-DEM and selected lag variables from V-DEM, plus LJI.
+
+```{r setup}
+library(tidyverse)
+library(countrycode)
+library(readxl)
+library(vdemdata)
+library(lme4)
+library(interplot)
+library(lubridate)
+```
+
+Loading data
+
+Note: check on how massmob data merges with nelda. We want cases where this is no protest after the election to score as 0.
+
+```{r}
+nelda <- read_xls("NELDA.xls")
+vdem.data <- vdem
+lji <- read.csv("LJI-estimates-20140422.csv")
+massmob <- read.csv("mmALL_073119_csv.csv")
+```
+
+
+Cleaning nelda variables--this will have to be done for all used variables
+```{r}
+nelda <- nelda %>% rename(first.mp.election = nelda2)
+nelda <- nelda %>% rename(protests = nelda29)
+nelda <- nelda %>% rename(inc.fav.cancel = nelda34)
+
+nelda <- nelda %>% mutate(protests = ifelse(protests == "yes", 1, ifelse(protests == "no", 0, NA)))
+nelda <- nelda %>% mutate(inc.fav.cancel = ifelse(inc.fav.cancel == "yes", 1, ifelse(inc.fav.cancel == "no", 0, NA)))
+nelda <- nelda %>% mutate(inc.fav.cancel.protests = ifelse(nelda35 == "yes", 1, 0))
+nelda <- nelda %>% mutate(opp.fav.cancel = ifelse(nelda32 == "yes", 1, 0))
+
+
+```
+
+
+Adding a vdem ID to the other packages
+
+Note: the missing values from NELDA are cases not included in VDEM (e.g. Bahamas, Dominica.)
+```{r}
+nelda <- nelda %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "gwn", destination = "vdem"))
+
+lji <- lji %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", 
+                                               destination = "vdem"))
+massmob <- massmob %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "p4n", 
+                                               destination = "vdem"))
+
+nelda <- nelda %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+lji <- lji %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+vdem.data <- vdem.data %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+massmob <- massmob %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+
+```
+
+VDEM variables to lag
+v2x_polyarchy, v2x_libdem, v2xpartipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat
+
+The approach below works for lagging variables by group. Next step is to lag all of the above variables, lag LJI variables, and then merge with nelda.
+
+```{r}
+vdem.recent <- vdem.data %>% filter(year >= 1944)
+
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(polyarchy.1lag = lag(v2x_polyarchy))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(libdem.1lag = lag(v2x_libdem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partipdem.1lag = lag(v2x_partipdem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(delibdem.1lag = lag(v2x_delibdem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(egaldem.1lag = lag(v2x_egaldem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(altinf.1lag = lag(v2x_freexp_altinf))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(api.1lag = lag(v2x_api))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(mpi.1lag = lag(v2x_mpi))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(frassoc.1lag = lag(v2x_frassoc_thick))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(suffr.1lag = lag(v2x_suffr))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(frefair.1lag = lag(v2xel_frefair))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(elecoff.1lag = lag(v2x_elecoff))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(liberal.1lag = lag(v2x_liberal))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jucon.1lag = lag(v2x_jucon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partip.1lag = lag(v2x_partip))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(cspart.1lag = lag(v2x_cspart))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(eqdr.1lag = lag(v2xeg_eqdr))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(oppaut.1lag = lag(v2psoppaut))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jureform.1lag = lag(v2jureform))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jupurge.1lag = lag(v2jupurge))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jupoatck.1lag = lag(v2jupoatck))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jupack.1lag = lag(v2jupack))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(juaccnt.1lag = lag(v2juaccnt))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(juhcind.1lag = lag(v2juhcind))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(juncind.1lag = lag(v2juncind))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(mecenefm.1lag = lag(v2mecenefm))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(gdppcln.1lag = lag(e_migdppcln))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(gdpgro.1lag = lag(e_migdpgro))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(inflat.1lag = lag(e_miinflat))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcon.1lag = lag(v2xlg_legcon))
+
+
+
+
+
+
+
+#test.set.samp <- test.set %>% select(country_id, year, v2x_polyarchy, polyarchy.1lag)
+```
+
+Imporant variables to include but not lag: v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm
+
+
+```{r}
+lji <- lji %>% group_by(ccode) %>% mutate(lji.lag = lag(LJI))
+```
+
+Cleaning nelda date variable and massmob date
+```{r}
+nelda <- nelda %>% mutate(mmdd = ifelse(mmdd < 1000, paste0(0, mmdd), mmdd))
+nelda <- nelda %>% mutate(election_mdy = paste0(mmdd, year))
+nelda <- nelda %>% mutate(election_mdy = mdy(election_mdy))
+
+massmob <- massmob %>% mutate(startday = ifelse(startday < 10, paste0(0, startday), startday))
+massmob <- massmob %>% mutate(startmonth = ifelse(startmonth < 10, paste0(0, startmonth), startmonth))
+massmob <- massmob %>% mutate(protest_mdy = ifelse(is.na(startday) == T | is.na(startmonth) == T, NA,  paste0(startmonth, startday, year)))
+
+massmob <- massmob %>% mutate(protest_mdy = mdy(protest_mdy))
+massmob <- massmob %>% filter(is.na(protest_mdy) == F)
+```
+
+
+Merging
+
+```{r}
+lji <- lji %>% filter(is.na(country_id) == FALSE)
+nelda <- nelda %>% filter(is.na(country_id) == FALSE)
+massmob <- massmob %>% filter(is.na(country_id) == FALSE)
+ 
+nelda2 <- nelda %>% merge(lji %>% dplyr::select(LJI, lji.lag, country_id_year), by = "country_id_year")
+
+nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat, v2xlg_legcon, legcon.1lag, polyarchy.1lag, libdem.1lag, partipdem.1lag, 
+                                                  delibdem.1lag,
+egaldem.1lag ,
+altinf.1lag,
+api.1lag,
+mpi.1lag,
+frassoc.1lag,
+suffr.1lag,
+frefair.1lag,
+elecoff.1lag,
+liberal.1lag,
+jucon.1lag,
+partip.1lag,
+cspart.1lag,
+eqdr.1lag,
+oppaut.1lag,
+jureform.1lag,
+jupurge.1lag,
+jupoatck.1lag,
+jupack.1lag,
+juaccnt.1lag,
+juhcind.1lag,
+juncind.1lag,
+mecenefm.1lag,
+gdppcln.1lag,
+gdpgro.1lag,
+inflat.1lag,
+v2elvotbuy,
+v2elirreg,
+v2elintim, v2elfrfair,
+                                                  country_id_year), by = "country_id_year")
+
+nelda3 <- nelda2 %>% merge(massmob, by = "country_id_year")
+```
+
+
+
+
+
+
+Cutting out protests before elections
+```{r}
+nelda3 <- nelda3 %>% filter(protest_mdy >= election_mdy)
+```
+
+##Nelda2 looks at NELDA variables as DV
+
+
+```{r}
+rm(vdem.data)
+rm(vdem.recent)
+rm(lji)
+rm(nelda)
+rm(massmob)
+```
+
+
+Correlations
+
+```{r}
+df <- nelda2 %>% select(protests, lji.lag, v2xel_frefair)
+cor(na.omit(df))
+```
+
+These models include LJI and freefair, with controls for largest party vote-share, civil society openness, and economic growth
+```{r}
+model.base.pres <- lmer(protests ~ lji.lag*v2xel_frefair + v2elvotlrg + cspart.1lag + gdpgro.1lag + (1 | country_id.x),  data = nelda2 %>% filter(opp.fav.cancel == 0))
+summary(model.base.pres)
+interplot(model.base.pres, var2 = "v2xel_frefair", var1 = "lji.lag")
+
+model.base.leg <- lmer(protests ~ lji.lag*v2xel_frefair + v2ellostlg + cspart.1lag + gdpgro.1lag + (1 | country_id.x), data = nelda2 %>% filter(opp.fav.cancel == 0))
+summary(model.base.leg)
+
+interplot(model.base.leg, var2 = "v2xel_frefair", var1 = "lji.lag")
+
+```
+
+Preliminary results show that for legislative elections (the larger dataset), greater judicial independence is associated with a higher risk of protest after manipulated elections.
+
+One thing to consider is that opposition may use protest when there is some judicial independence (i.e., it is not that courts give information to protesters, but that protesters protest to put pressure on elites including judges/justices)
+
+Models below regress favorable results for incumbent being canceled on protests*lji.
+These are surprising, and against my first cut hypothesis. I would expect that higher JI would lead to more annulments in the face of protest, but here we see less. In fact, low LJI is when protest is most likely to lead to canceled election results.
+```{r}
+model.cancel.pres <- lmer(inc.fav.cancel ~ protests*lji.lag + legcon.1lag + v2xel_frefair + v2elvotlrg + cspart.1lag + (1 | country_id.x), data = nelda2 %>% filter(opp.fav.cancel == 0))
+summary(model.cancel.pres)
+interplot(model.cancel.pres, var1 = "protests", var2 = "lji.lag")
+interplot(model.cancel.pres, var2 = "protests", var1 = "lji.lag")
+
+
+model.cancel.leg <- lmer(inc.fav.cancel ~ protests*lji.lag + legcon.1lag + v2xel_frefair + v2elvotlrg + cspart.1lag +(1 | country_id.x), data = nelda2 %>% filter(opp.fav.cancel == 0))
+summary(model.cancel.leg)
+
+interplot(model.cancel.leg, var1 = "protests", var2 = "lji.lag")
+interplot(model.cancel.leg, var2 = "protests", var1 = "lji.lag")
+
+```
+
+
+##Nelda3 looks at MMD variables as DV
+
+```{r}
+nelda3 <- nelda3 %>% mutate(protests.postelex = ifelse(protests == 1 & protesterdemand1 == "political behavior, process", 1, 0))
+```
+
+Models
+
+```{r}
+model.base.pres <- lmer(protests.postelex ~ lji.lag*v2xel_frefair + v2elvotlrg + cspart.1lag + gdpgro.1lag + (1 | country_id.x),  data = nelda3 %>% filter(opp.fav.cancel == 0))
+summary(model.base.pres)
+interplot(model.base.pres, var2 = "v2xel_frefair", var1 = "lji.lag")
+
+model.base.leg <- lmer(protests.postelex ~ lji.lag*v2xel_frefair + v2ellostlg + cspart.1lag + gdpgro.1lag + (1 | country_id.x), data = nelda3 %>% filter(opp.fav.cancel == 0))
+summary(model.base.leg)
+
+interplot(model.base.leg, var2 = "v2xel_frefair", var1 = "lji.lag")
+```
+
+
+```{r}
+model.cancel.pres <- lmer(inc.fav.cancel ~ protests*lji.lag + legcon.1lag + v2xel_frefair + v2elvotlrg + cspart.1lag + (1 | country_id.x), data = nelda3 %>% filter(opp.fav.cancel == 0))
+summary(model.cancel.pres)
+interplot(model.cancel.pres, var1 = "protests", var2 = "lji.lag")
+interplot(model.cancel.pres, var2 = "protests", var1 = "lji.lag")
+
+
+model.cancel.leg <- lmer(inc.fav.cancel ~ protests*lji.lag + legcon.1lag + v2xel_frefair + v2elvotlrg + cspart.1lag +(1 | country_id.x), data = nelda3 %>% filter(opp.fav.cancel == 0))
+summary(model.cancel.leg)
+
+interplot(model.cancel.leg, var1 = "protests", var2 = "lji.lag")
+interplot(model.cancel.leg, var2 = "protests", var1 = "lji.lag")
+
+```
+
+
+Should also look into additional DVs: protest size and protest violence
+
+```{r}
+model.size.pres <- lmer( ~ lji.lag*v2xel_frefair + v2elvotlrg + cspart.1lag + gdpgro.1lag + (1 | country_id.x),  data = nelda3 %>% filter(opp.fav.cancel == 0))
+summary(model.base.pres)
+```
+
