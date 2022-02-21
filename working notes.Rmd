@@ -13,6 +13,7 @@ library(vdemdata)
 library(lme4)
 library(interplot)
 library(lubridate)
+library(summarytools)
 ```
 
 Loading data
@@ -20,10 +21,11 @@ Loading data
 Note: check on how massmob data merges with nelda. We want cases where this is no protest after the election to score as 0.
 
 ```{r}
-nelda <- read_xls("NELDA.xls")
+nelda <- read_xls("./Data/NELDA.xls")
+ecav <- read_xls("./Data/ECAV datatset_Version 1.2.xls")
 vdem.data <- vdem
-lji <- read.csv("LJI-estimates-20140422.csv")
-massmob <- read.csv("mmALL_073119_csv.csv")
+lji <- read.csv("./Data/LJI-estimates-20140422.csv")
+massmob <- read.csv("./Data/mmALL_073119_csv.csv")
 ```
 
 
@@ -40,6 +42,8 @@ nelda <- nelda %>% mutate(opp.fav.cancel = ifelse(nelda32 == "yes", 1, 0))
 
 
 ```
+
+
 
 
 Adding a vdem ID to the other packages
@@ -68,6 +72,17 @@ The approach below works for lagging variables by group. Next step is to lag all
 ```{r}
 vdem.recent <- vdem.data %>% filter(year >= 1944)
 
+vdem.recent <- vdem.recent %>% mutate(elcompindex.m = ifelse(v2xel_frefair == 0, 0, v2x_mpi / v2xel_frefair))
+vdem.recent$v2elirreg.inv <- vdem.recent$v2elirreg * -1
+
+vdem.recent$reform_positive <- NA
+vdem.recent$reform_positive[vdem.recent$v2jureform_ord <= 1] <- 0
+vdem.recent$reform_positive[vdem.recent$v2jureform_ord == 2 ] <- 1
+
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(v2elintmon.lag = lag(v2elintmon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(reform_positive.lag = lag(reform_positive))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(v2elirreg.inv.lag = lag(v2elirreg.inv))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(elcompindex.m.1lag = lag(elcompindex.m))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(polyarchy.1lag = lag(v2x_polyarchy))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(libdem.1lag = lag(v2x_libdem))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partipdem.1lag = lag(v2x_partipdem))
@@ -98,15 +113,25 @@ vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(gdppcln.1lag = la
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(gdpgro.1lag = lag(e_migdpgro))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(inflat.1lag = lag(e_miinflat))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcon.1lag = lag(v2xlg_legcon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(physinteg.1lag = lag(v2x_clphy))
+vdem.recent <- vdem.recent %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
 
 
+##Leading variables for protest after election years
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(prodem.protest.1lead = lead(v2cademmob))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(proauth.protest.1lead = lead(v2caautmob))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(protest.scale.1lead = lead(v2cagenmob))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(concen.protest.1lead = lead(v2caconmob))
 
 
-
-
-
-#test.set.samp <- test.set %>% select(country_id, year, v2x_polyarchy, polyarchy.1lag)
 ```
+Subtracting election integrity variable from additive polyarchy index and judicial constraints from liberal component index
+```{r}
+vdem.recent <- vdem.recent %>% mutate(polyarchy_no_ei = v2x_api - (.25*v2xel_frefair))
+
+vdem.recent <- vdem.recent %>% mutate(liberal_no_jucon = (v2xcl_rol + v2xlg_legcon)/2)
+```
+
 
 Imporant variables to include but not lag: v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm
 
@@ -139,8 +164,20 @@ massmob <- massmob %>% filter(is.na(country_id) == FALSE)
  
 nelda2 <- nelda %>% merge(lji %>% dplyr::select(LJI, lji.lag, country_id_year), by = "country_id_year")
 
-nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat, v2xlg_legcon, legcon.1lag, polyarchy.1lag, libdem.1lag, partipdem.1lag, 
+nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2elintmon.lag, v2elintmon, v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat, v2xlg_legcon, legcon.1lag, polyarchy.1lag, libdem.1lag, partipdem.1lag, 
                                                   delibdem.1lag,
+                                                  elcompindex.m.1lag,
+                                                  opposition.oversight.lag,
+                                                  v2elirreg.inv,
+                                                  reform_positive.lag,
+                                                  e_mipopula,
+                                                  e_miurbani,
+                                                  e_miurbpop,
+                                                  e_wb_pop, #Population
+                                                  v2xps_party, #Party institutionalization
+                                                  #v2regoppgroupssize, #Opp group size (categorical)
+                                                  v2pscohesv, #Legislative party cohesion
+                                                  
 egaldem.1lag ,
 altinf.1lag,
 api.1lag,
@@ -169,7 +206,22 @@ inflat.1lag,
 v2elvotbuy,
 v2elirreg,
 v2elintim, v2elfrfair,
-                                                  country_id_year), by = "country_id_year")
+physinteg.1lag, v2x_clphy,
+polyarchy_no_ei,
+liberal_no_jucon, v2elaccept,
+v2cademmob, #pro-democracy mass mob
+v2caautmob, #pro-autoc mass mob
+v2cagenmob, #scale of mobilization
+v2caconmob, #concentration of mobilization in the capital
+v2x_regime,
+prodem.protest.1lead,
+proauth.protest.1lead,
+protest.scale.1lead,
+concen.protest.1lead,
+country_id_year), by = "country_id_year")
+
+nelda2 <- nelda2 %>% mutate(winner.margin = ifelse(types == "Executive", v2elvotlrg/100, v2ellovtlg/100))
+nelda2 <- nelda2 %>% mutate(presidential = ifelse(types == "Executive", 1, 0))
 
 nelda3 <- nelda2 %>% merge(massmob, by = "country_id_year")
 ```
@@ -178,8 +230,7 @@ nelda3 <- nelda2 %>% merge(massmob, by = "country_id_year")
 
 
 
-
-Cutting out protests before elections
+Cutting out protests before elections for nelda 3, 
 ```{r}
 nelda3 <- nelda3 %>% filter(protest_mdy >= election_mdy)
 ```
@@ -195,31 +246,244 @@ rm(nelda)
 rm(massmob)
 ```
 
-
-Correlations
+##Data exploration
 
 ```{r}
-df <- nelda2 %>% select(protests, lji.lag, v2xel_frefair)
-cor(na.omit(df))
+nelda2.small <- nelda2 %>% dplyr::select(protests, lji.lag, v2xel_frefair, v2elvotlrg, v2ellostlg, cspart.1lag, gdpgro.1lag, country_id.x, opp.fav.cancel, winner.margin, presidential, inc.fav.cancel, first.mp.election, altinf.1lag, v2elvotbuy, v2elirreg, v2elintim, frassoc.1lag, physinteg.1lag, v2x_clphy, polyarchy_no_ei,
+liberal_no_jucon, v2elaccept, v2cademmob, #pro-democracy mass mob
+v2caautmob, #pro-autoc mass mob
+v2cagenmob, #scale of mobilization
+v2caconmob, #concentration of mobilization in the capital
+v2x_regime,
+prodem.protest.1lead,
+proauth.protest.1lead,
+protest.scale.1lead,
+concen.protest.1lead)
+
+view(dfSummary(nelda2.small))
 ```
 
-These models include LJI and freefair, with controls for largest party vote-share, civil society openness, and economic growth
+
+##Correlations
+
+Show that protests are negatively associated with LJI and with free and fair elections, and with less vote-buying, intimidation, and fraud (note these are reverse coded; higher values means less of the thing)
+
 ```{r}
-model.base.pres <- lmer(protests ~ lji.lag*v2xel_frefair + v2elvotlrg + cspart.1lag + gdpgro.1lag + (1 | country_id.x),  data = nelda2 %>% filter(opp.fav.cancel == 0))
-summary(model.base.pres)
-interplot(model.base.pres, var2 = "v2xel_frefair", var1 = "lji.lag")
+DataExplorer::plot_correlation(nelda2.small, cor_args = list("use" = "pairwise.complete.obs"))
+```
 
-model.base.leg <- lmer(protests ~ lji.lag*v2xel_frefair + v2ellostlg + cspart.1lag + gdpgro.1lag + (1 | country_id.x), data = nelda2 %>% filter(opp.fav.cancel == 0))
-summary(model.base.leg)
+##Models
 
-interplot(model.base.leg, var2 = "v2xel_frefair", var1 = "lji.lag")
+```{r}
+nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2)
+```
+
+
+## ECAV
+
+
+
+Getting events after the election, applying other filters
+
+```{r}
+ecav.pre <- ecav %>% filter(Date < Electiondate)
+ecav.pre <- ecav.pre %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+
+ecav <- ecav %>% filter(Date >= Electiondate)
+ecav <- ecav %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+```
+
+Grouped summaries
+```{r}
+count_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(n.events.pre = n())
+count_data_post <- ecav %>% group_by(NeldaID) %>% summarize(n.events.post = n())
+
+
+
+##Duration
+max_date <- ecav %>% group_by(NeldaID) %>% summarize(latest.event = max(Date))
+min_date <- ecav %>% group_by(NeldaID) %>% summarize(earliest.event = min(Date))
+duration_data <- left_join(min_date, max_date, by = "NeldaID")
+duration_data <- duration_data %>% mutate(d.events = as.duration(interval(earliest.event, latest.event)))
+duration_data <- duration_data %>% mutate(d.events.num = as.numeric(d.events, "days"))
+duration_data <- duration_data %>% mutate(d.events.num = ifelse(d.events.num == 0, 1, d.events.num)) #1-day events
+
+##Size
+ecav <- ecav %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
+size_data <- ecav %>% group_by(NeldaID) %>% summarize(median.participants = median(ParticipantNumber))
+
+ecav.pre <- ecav.pre %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
+size_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(median.participants.pre = median(ParticipantNumber))
+
+
+##Combined
+ecav_data <- left_join(count_data_post, duration_data, by = "NeldaID")
+ecav_data <- left_join(ecav_data, size_data, by = "NeldaID")
+
+ecav_data_pre <- left_join(count_data_pre, size_data_pre, by = "NeldaID")
+ecav_data <- left_join(ecav_data, ecav_data_pre, by = "NeldaID")
+
+
+
+
+## Merge back with NELDA 2
+```
+
+Merge ECAV with NELDA
+
+```{r}
+nelda2.sub <- nelda2.sub %>% rename(NeldaID = electionid)
+nelda2.sub <- left_join(nelda2.sub, ecav_data, by = "NeldaID")
+
+##Cleaning
+
+nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post)==T, 0, n.events.post))
+nelda2.sub <- nelda2.sub %>% mutate(d.events.num = ifelse(is.na(d.events.num)==T, 0, d.events.num))
+nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(is.na(median.participants)==T, 0, median.participants))
+
+nelda2.sub <- nelda2.sub %>% mutate(any.ecav.protest = ifelse(n.events.post >= 1, 1, 0))
+
+##Making the assumption that NAs for pre-election protest are zero
+nelda2.sub <- nelda2.sub %>% mutate(n.events.pre = ifelse(is.na(n.events.pre) == T, 0, n.events.pre))
 
 ```
 
-Preliminary results show that for legislative elections (the larger dataset), greater judicial independence is associated with a higher risk of protest after manipulated elections.
 
-One thing to consider is that opposition may use protest when there is some judicial independence (i.e., it is not that courts give information to protesters, but that protesters protest to put pressure on elites including judges/justices)
 
+Models
+
+Test dispersion
+
+```{r}
+modelnb <- MASS::glm.nb(d.events.num ~ lji.lag*v2xel_frefair*altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre + v2psoppaut + as.factor(v2x_regime),  data = nelda2.sub %>% filter(opp.fav.cancel == 0),
+trace=TRUE)
+pscl::odTest(modelnb)
+```
+
+
+```{r}
+
+
+model.evac.num <- glm.nb(n.events.post  ~ lji.lag*v2xel_frefair + altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre + v2pscohesv+ #v2psoppaut +
+                             as.factor(v2x_regime),  data = nelda2.sub %>% filter(opp.fav.cancel == 0))
+summary(model.evac.num)
+sjPlot::plot_model(model.evac.num, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.17, .61]"))
+
+
+
+model.evac.dur <- glm.nb(d.events.num ~ lji.lag*v2xel_frefair + altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + e_wb_pop + e_migdppcln + v2pscohesv+ #v2psoppaut + #n.events.pre +
+                           as.factor(v2x_regime),  data = nelda2.sub %>% filter(opp.fav.cancel == 0)) #Does not include prior mobilization control due to error fitting model
+summary(model.evac.dur)
+sjPlot::plot_model(model.evac.dur, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.17, .61]"))
+
+#Not many observations have participant size
+
+##Not run: inlcuding control for prior protest results in perfect separation
+#model.ecav.bin <- glm(any.ecav.protest ~ lji.lag*v2xel_frefair + altinf.1lag  + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre +
+  #                       as.factor(v2x_regime),  data = nelda2.sub %>% filter(opp.fav.cancel == 0), family = #binomial(link="logit"))
+#summary(model.ecav.bin)
+
+#sjPlot::plot_model(model.ecav.bin, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.19, .63]"))
+```
+
+3-way evac models
+
+```{r}
+model.evac.num3 <- glm.nb(n.events.post  ~ lji.lag*v2xel_frefair*altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre + v2pscohesv + as.factor(v2x_regime),  data = nelda2.sub %>% filter(opp.fav.cancel == 0))
+summary(model.evac.num3)
+p.quant.3 <- sjPlot::plot_model(model.evac.num3, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.17, .61]", "altinf.1lag"))
+p.quant.3 + coord_cartesian(xlim =c(0, 1), ylim = c(0, 10))
+
+
+
+model.evac.dur3 <- glm.nb(d.events.num ~ lji.lag*v2xel_frefair*altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre + v2pscohesv+ as.factor(v2x_regime),  data = nelda2.sub %>% filter(opp.fav.cancel == 0))
+summary(model.evac.dur3)
+p.dur.3 <- sjPlot::plot_model(model.evac.dur3, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.17, .61]", "altinf.1lag"))
+p.dur.3 + coord_cartesian(xlim =c(0, 1), ylim = c(0, 150))
+
+```
+
+
+```{r}
+##Winner margin, combines pres and leg elections
+
+model.3way <- glm(as.factor(protests) ~ lji.lag*v2xel_frefair*altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + e_wb_pop + e_migdppcln + n.events.pre + v2pscohesv+ as.factor(v2x_regime) + liberal_no_jucon, data = nelda2.sub, family = binomial(link="logit"))
+summary(model.3way)
+
+sjPlot::plot_model(model.3way, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.17, .61]", "altinf.1lag [.32, .70, .89]")) #There is an interaction effect under extreme conditions: altinfo low, comparing min-max of LJI--highest LJI is significantly higher pp of protest than lowest. No effect when altinfo is medium or high. This only emerges in models without country fixed effects. With FE, no effect
+
+
+model.2way <- lmer(protests ~ lji.lag*v2xel_frefair + altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre + v2pscohesv+ (1 | country_id.x), data = nelda2.sub)
+summary(model.2way)
+
+#interplot(model.2way, var1 = "lji.lag", var2 = "v2xel_frefair")
+sjPlot::plot_model(model.2way, type = "eff", terms =  c("v2xel_frefair", "lji.lag [.17, .61]")) #1st and 3rd quartiles
+#interactions::interact_plot(model.2way, pred = v2xel_frefair, modx = lji.lag, interval = T)
+```
+
+##Models using vdem protest data
+Uses lmer since DV is not binary
+
+Current-year protest
+```{r}
+##Overall
+model.3way.overall <- lmer(v2cagenmob ~ lji.lag*v2xel_frefair*altinf.1lag + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + as.factor(v2x_regime) + liberal_no_jucon +  e_wb_pop + e_migdppcln + n.events.pre  + v2pscohesv+ (1 | country_id.x), data = nelda2.sub)
+summary(model.3way.overall)
+
+sjPlot::plot_model(model.3way.overall, type = "pred", terms =  c("lji.lag", "v2xel_frefair [.23, .87]",  "altinf.1lag [.32, .89]"))  #Here we see that low LJI results in more protest in higher altinf environments
+
+##Pro-dem
+
+model.3way.prodem <- lmer(v2cademmob ~ lji.lag*v2xel_frefair*altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + as.factor(v2x_regime) + liberal_no_jucon +  e_wb_pop + e_migdppcln + n.events.pre  + v2pscohesv+ (1 | country_id.x), data = nelda2.sub)
+summary(model.3way.prodem)
+
+sjPlot::plot_model(model.3way.prodem, type = "pred", terms = c("v2xel_frefair",  "lji.lag [.24, .72]", "altinf.1lag [.37, .81]" ))  #Here we see low LJI is associated with more protest in higher alt-inf environments (same as above)
+#interactions::interact_plot(model.3way.prodem, pred = lji.lag, modx = v2xel_frefair, mod2 = altinf.1lag,
+#                            data = nelda2 %>% filter(opp.fav.cancel == 0 & inc.fav.cancel == 0))
+
+
+model.2way.prodem <- lmer(v2cademmob ~ lji.lag*v2xel_frefair + altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + as.factor(v2x_regime) + liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre  + v2psoppaut + (1 | country_id.x), data = nelda2.sub)
+summary(model.2way.prodem)
+
+sjPlot::plot_model(model.2way.prodem, type = "pred", terms = c("v2xel_frefair",  "lji.lag [.19, .61]" ))  #Here we see low LJI is associated with more protest in higher alt-inf environments (same as above)
+#interactions::interact_plot(model.3way.prodem, pred = lji.lag, modx = v2xel_frefair, mod2 = altinf.1lag,
+#                            data = nelda2 %>% filter(opp.fav.cancel == 0 & inc.fav.cancel == 0))
+
+
+##Pro-authoritarian
+
+model.3way.proauth <- lmer(v2caautmob ~ lji.lag*v2xel_frefair*altinf.1lag + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + as.factor(v2x_regime) + liberal_no_jucon + e_wb_pop + e_migdppcln + n.events.pre  + v2pscohesv+(1 | country_id.x), data = nelda2.sub)
+summary(model.3way.proauth)
+
+sjPlot::plot_model(model.3way.proauth, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.01, 1.0]", "altinf.1lag [.32, .70, .89]"))  #Here we see a similar relationship, but only at highest levels of altinf
+
+
+```
+Summary of findings of negative binomial models:
+
+-ECAV count data: LJI has no effect except in a very small number of high-quality elections in low-info environments
+-ECAV duration data: LJI has positive effect w/r/t duration in high-quality, low-info elections
+-NELDA data: LJI increases risk of protest in low-quality, high-info elections
+
+Summary of LMER models:
+
+-Pro-dem mobilization (VDEM): LJI has no effect in low-info environments, may reduce protest risk in high-info cases
+
+This seems to show that high LJI does not increase protest risk in a low-quality election when media freedom is low. This would counter the information-revelation argument about courts (or at least complicate it--courts can only reveal so much info by themselves). 
+
+Things to consider:
+- Free media can reveal the fact that low-independence courts are upholding tainted elections
+- Opposition choice to press cases is strategic
+- These models do not include CCP data on electoral courts
+
+
+One thing to consider is that opposition choose not to protest when LJI is high, but when media is able to provide information on manipulation.
+
+Idea:
+There are two proposed channels for independent courts to influence electoral manipulation. First, and most traditionally, through provision of information leading to an increased risk of protest; second, by raising the potential penalties for engaging in manipulation.
+
+
+##Models of canceling election results after the vote
 Models below regress favorable results for incumbent being canceled on protests*lji.
 These are surprising, and against my first cut hypothesis. I would expect that higher JI would lead to more annulments in the face of protest, but here we see less. In fact, low LJI is when protest is most likely to lead to canceled election results.
 ```{r}
@@ -240,21 +504,57 @@ interplot(model.cancel.leg, var2 = "protests", var1 = "lji.lag")
 
 ##Nelda3 looks at MMD variables as DV
 
+There are several ways to do this:
+
+1) Binary protest or not
+2) Number of protests in the wave
+3) Length of wave
+4) Number of participants
+5) Binary violence or not
+
 ```{r}
 nelda3 <- nelda3 %>% mutate(protests.postelex = ifelse(protests == 1 & protesterdemand1 == "political behavior, process", 1, 0))
+
+nelda3 <- nelda3 %>% mutate(protests.postelex.quant = ifelse(protests.postelex == 1, protestnumber, 0))
 ```
+
+Cutting out closed autocracies and liberal democracies
+
+```{r}
+nelda3.sub <- nelda3 %>% filter(v2x_regime == 1 | v2x_regime == 2)
+```
+
 
 Models
 
 ```{r}
-model.base.pres <- lmer(protests.postelex ~ lji.lag*v2xel_frefair + v2elvotlrg + cspart.1lag + gdpgro.1lag + (1 | country_id.x),  data = nelda3 %>% filter(opp.fav.cancel == 0))
-summary(model.base.pres)
-interplot(model.base.pres, var2 = "v2xel_frefair", var1 = "lji.lag")
+model.mmd.binary <- glm(protests.postelex ~ lji.lag*v2xel_frefair*altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + as.factor(country_id.x),  data = nelda3.sub, family = binomial(link="logit"))  #as.factor(v2x_regime) excluded due to multico.
+summary(model.mmd.binary)
+sjPlot::plot_model(model.mmd.binary, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.26, .49]", "altinf.1lag"))
 
-model.base.leg <- lmer(protests.postelex ~ lji.lag*v2xel_frefair + v2ellostlg + cspart.1lag + gdpgro.1lag + (1 | country_id.x), data = nelda3 %>% filter(opp.fav.cancel == 0))
-summary(model.base.leg)
 
-interplot(model.base.leg, var2 = "v2xel_frefair", var1 = "lji.lag")
+model.mmd.binary2 <- glmer(protests.postelex ~ lji.lag*v2xel_frefair*altinf.1lag + v2elintmon + winner.margin  + physinteg.1lag +  (1 | country_id.x), data = nelda3 %>% filter(opp.fav.cancel == 0), family = binomial(link = "logit"))
+summary(model.mmd.binary2)  # Various variables when included causes the model to fail to converge
+
+interplot(model.mmd.binary2, var2 = "v2xel_frefair", var1 = "lji.lag")
+
+sjPlot::plot_model(model.mmd.binary2, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.26, .49]"))
+
+
+```
+
+Protest quantity
+```{r}
+model.base.num <- glm(protests.postelex.quant ~ lji.lag*v2xel_frefair + altinf.1lag + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + as.factor(v2x_regime) + as.factor(country_id.x),  data = nelda3.sub %>% filter(opp.fav.cancel == 0), family = poisson(link="log"))
+summary(model.base.num)
+interplot(model.base.num, var2 = "v2xel_frefair", var1 = "lji.lag")
+sjPlot::plot_model(model.base.num, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.24, .72]"))
+
+
+model.mmd.num2 <- glmer(protests.postelex.quant ~ lji.lag*v2xel_frefair*altinf.1lag + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + as.factor(v2x_regime) +  (1 | country_id.x), data = nelda3.sub %>% filter(opp.fav.cancel == 0), family = poisson(link = "log"))
+summary(model.mmd.num2)  
+sjPlot::plot_model(model.mmd.num2, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.24, .72]", "altinf.1lag"))
+
 ```
 
 
@@ -276,8 +576,55 @@ interplot(model.cancel.leg, var2 = "protests", var1 = "lji.lag")
 
 Should also look into additional DVs: protest size and protest violence
 
+Violence
+
+```{r}
+model.viol.binary <- glm(protesterviolence ~ lji.lag*v2xel_frefair + altinf.1lag + v2elintmon + v2elintmon + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag +  liberal_no_jucon + as.factor(country_id.x),  data = nelda3.sub, family = binomial(link="logit"))  #as.factor(v2x_regime) excluded due to multico.
+summary(model.viol.binary)
+sjPlot::plot_model(model.viol.binary, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.26, .49]"))
+
+
+model.mmd.binary2 <- glmer(protesterviolence ~ lji.lag*v2xel_frefair*altinf.1lag + winner.margin  + physinteg.1lag +  (1 | country_id.x), data = nelda3 %>% filter(opp.fav.cancel == 0), family = binomial(link = "logit"))
+summary(model.mmd.binary2)  # Various variables when included causes the model to fail to converge
+
+interplot(model.mmd.binary2, var2 = "v2xel_frefair", var1 = "lji.lag")
+
+sjPlot::plot_model(model.mmd.binary2, type = "pred", terms =  c("v2xel_frefair", "lji.lag [.26, .49]"))
+
+
+
+```
+
+
 ```{r}
 model.size.pres <- lmer( ~ lji.lag*v2xel_frefair + v2elvotlrg + cspart.1lag + gdpgro.1lag + (1 | country_id.x),  data = nelda3 %>% filter(opp.fav.cancel == 0))
 summary(model.base.pres)
 ```
 
+# Looking at protest and competitiveness
+
+```{r}
+#Same pattern here occurs with LJI
+
+model.3way <- glm(protests.postelex ~ reform_positive.lag*v2elirreg.inv*opposition.oversight.lag + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + as.factor(v2x_regime) +  factor(country_id.x), data = nelda3)
+summary(model.3way)
+
+sjPlot::plot_model(model.3way, type = "pred", terms =  c( "opposition.oversight.lag",  "reform_positive.lag", "v2elirreg.inv [-2.87, 2.63]")) #There is an interaction effect under extreme conditions: 
+
+
+model.3way <- glm(protests.postelex ~ reform_positive.lag*v2elirreg.inv*elcompindex.m.1lag + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + as.factor(v2x_regime) +  factor(country_id.x), data = nelda3)
+summary(model.3way)
+
+sjPlot::plot_model(model.3way, type = "pred", terms =  c( "elcompindex.m.1lag ", "reform_positive.lag",   "v2elirreg.inv [-2.87, 2.63]")) #There is an interaction effect under extreme condi
+
+
+model.3way <- glm(protests.postelex ~ reform_positive.lag*v2elirreg.inv*elcompindex.m.1lag + winner.margin + cspart.1lag + gdpgro.1lag + presidential + physinteg.1lag + as.factor(v2x_regime) +  factor(country_id.x), data = nelda3)
+summary(model.3way)
+
+sjPlot::plot_model(model.3way, type = "pred", terms =  c( "elcompindex.m.1lag ", "reform_positive.lag",   "v2elirreg.inv [-2.87, 2.63]")) #There is an interaction effect under extreme condi
+```
+
+
+
+
+Looking at the ECAV data, it suggests that LJI does not increase the risk that any protest will occur. However, it does appear to increase the risk that protests will last longer when elections are low quality
