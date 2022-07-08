@@ -1,0 +1,39 @@
+Code for dagitty web browser
+
+dag {
+bb="0,0,1,1"
+"Citizen grievances" [pos="0.586,0.365"]
+"Economic problems" [pos="0.586,0.246"]
+"Incumbent share" [pos="0.221,0.523"]
+"Information on manipulation" [pos="0.337,0.361"]
+"Manipulation level" [pos="0.100,0.359"]
+"Media freedom" [pos="0.375,0.245"]
+"Political openness" [adjusted,pos="0.097,0.123"]
+"Regime legitimation" [pos="0.589,0.542"]
+"Strategic choice to protest" [pos="0.345,0.638"]
+DFJI [exposure,pos="0.181,0.208"]
+Monitors [pos="0.293,0.246"]
+Protest [outcome,pos="0.669,0.771"]
+Repression [pos="0.103,0.772"]
+"Citizen grievances" -> "Regime legitimation"
+"Economic problems" -> "Citizen grievances"
+"Economic problems" -> "Media freedom"
+"Incumbent share" -> "Strategic choice to protest"
+"Information on manipulation" -> "Citizen grievances"
+"Information on manipulation" -> "Strategic choice to protest"
+"Manipulation level" -> "Incumbent share"
+"Manipulation level" -> "Information on manipulation"
+"Media freedom" -> "Information on manipulation"
+"Political openness" -> "Manipulation level"
+"Political openness" -> "Media freedom" [pos="0.298,0.092"]
+"Political openness" -> DFJI
+"Regime legitimation" -> "Incumbent share"
+"Regime legitimation" -> Protest
+"Strategic choice to protest" -> Protest
+DFJI -> "Information on manipulation"
+DFJI -> "Manipulation level"
+DFJI -> "Regime legitimation" [pos="0.203,0.517"]
+Monitors -> "Information on manipulation"
+Repression -> "Manipulation level"
+Repression -> Protest
+}
