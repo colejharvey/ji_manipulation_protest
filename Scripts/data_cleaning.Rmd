@@ -33,18 +33,54 @@ nelda <- nelda %>% rename(first.mp.election = nelda2)
 nelda <- nelda %>% rename(protests = nelda29)
 nelda <- nelda %>% rename(inc.fav.cancel = nelda34)
 nelda <- nelda %>% rename(inc.lose = nelda24)
+nelda <- nelda %>% rename(inc.termlimit = nelda8)
+nelda <- nelda %>% rename(econ.crisis.nelda = nelda18)
+nelda <- nelda %>% rename(opp.votegain = nelda27)
+nelda <- nelda %>% rename(nelda.protests.fraud = nelda30)
+nelda <- nelda %>% rename(new.elections.held = nelda37)
+nelda <- nelda %>% rename(inc.replaced.prot = nelda41)
 
+
+
+
+nelda <- nelda %>% mutate(first.mp.election = ifelse(first.mp.election == "yes", 1, ifelse(first.mp.election == "no", 0, NA)))
 nelda <- nelda %>% mutate(protests = ifelse(protests == "yes", 1, ifelse(protests == "no", 0, NA)))
 nelda <- nelda %>% mutate(inc.fav.cancel = ifelse(inc.fav.cancel == "yes", 1, ifelse(inc.fav.cancel == "no", 0, NA)))
 nelda <- nelda %>% mutate(inc.fav.cancel.protests = ifelse(nelda35 == "yes", 1, 0))
 nelda <- nelda %>% mutate(opp.fav.cancel = ifelse(nelda32 == "yes", 1, 0))
 nelda <- nelda %>% mutate(inc.lose = ifelse(inc.lose == "yes", 1, ifelse(inc.lose == "no", 0, NA)))
 
+nelda <- nelda %>% mutate(inc.termlimit.num = ifelse(types == "Legislative/Parliamentary" & inc.termlimit == "N/A", 0, ifelse(types == "Executive" & inc.termlimit == "yes", 1,                                                                                                                       ifelse(types == "Executive" & inc.termlimit == "no", 0, NA))))
+                          
+                          
+          
+
+nelda <- nelda %>% mutate(econ.crisis.nelda = ifelse(econ.crisis.nelda == "yes", 1, ifelse(econ.crisis.nelda == "no", 0, NA)))
+nelda <- nelda %>% mutate(opp.votegain = ifelse(opp.votegain == "yes", 1, ifelse(opp.votegain == "no", 0, NA)))
+nelda <- nelda %>% mutate(nelda.protests.fraud = ifelse(protests == 0, 0, ifelse(nelda.protests.fraud == "yes", 1, ifelse(nelda.protests.fraud == "no", 0, NA))))
+nelda <- nelda %>% mutate(inc.replaced.prot = ifelse(inc.replaced.prot == "yes", 1, 0))
+nelda <- nelda %>% mutate(new.elections.held = ifelse(new.elections.held == "yes", 1, 0))
+
+
+
+
 
 ```
 
 
+Coding anti-gov violence from ecav
 
+```{r}
+## Coding anti-government initiation of violence
+
+ecav <- ecav %>% mutate(antigov.violence = 
+                          ifelse(EventViolence == 0, 0,
+                                 ifelse(ViolenceInitiator == "-99", NA,
+                                                  ifelse(ViolenceInitiator == ".1" & Actor1Side == 1, 1, 
+                                                  ifelse(ViolenceInitiator == ".2" & Actor2Side == 1, 1,
+                                                         ifelse(ViolenceInitiator == "1.1" & Target1Side == 1, 1,
+                                                                ifelse(ViolenceInitiator == "2.1" & Target2Side == 1, 1, 0)))))))
+```
 
 Adding a vdem ID to the other packages
 
@@ -114,6 +150,24 @@ vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(gdpgro.1lag = lag
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(inflat.1lag = lag(e_miinflat))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcon.1lag = lag(v2xlg_legcon))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(physinteg.1lag = lag(v2x_clphy))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcorrupt.lag = lag(v3lgcrrpt))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(exbribe.lag = lag(v2exbribe))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(exembez.lag = lag(v2exembez))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(pubseccorrup.lag = lag(v2excrptps))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partybarriers.lag = lag(v2psbars))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(natlpartyorg.lag = lag(v2psorgs))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partybranch.lag = lag(v2psprbrch))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(csrepress.1lag = lag(v2csreprss))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(osorg.1lag = lag(v2cseeorgs))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(civlib.1lag = lag(v2x_clpol))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jucon.1lag = lag(v2x_jucon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcon.1lag = lag(v2xlg_legcon))
+
+
+
+
+
+
 vdem.recent <- vdem.recent %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
 
 
@@ -162,6 +216,12 @@ lji <- lji %>% filter(is.na(country_id) == FALSE)
 nelda <- nelda %>% filter(is.na(country_id) == FALSE)
 massmob <- massmob %>% filter(is.na(country_id) == FALSE)
  
+
+#Lagging econ crisis
+
+nelda <- nelda %>% group_by(country_id) %>% mutate(econ.crisis.nelda.1lag = lag(econ.crisis.nelda))
+
+#Merging
 nelda2 <- nelda %>% merge(lji %>% dplyr::select(LJI, lji.lag, country_id_year), by = "country_id_year")
 
 nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2elintmon.lag, v2elintmon, v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat, v2xlg_legcon, legcon.1lag, polyarchy.1lag, libdem.1lag, partipdem.1lag, 
@@ -185,7 +245,32 @@ nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2elintmon.lag, v2elint
                                                   v2xeg_eqprotec,
                                                   v2xeg_eqdr,
                                                   v2xeg_eqaccess,
-                                                  
+                                                  v3lgcrrpt,
+                                                  legcorrupt.lag,
+                                                  exbribe.lag,
+                                                  v2exbribe,
+                                                  exembez.lag,
+                                                  v2exembez,
+                                                  pubseccorrup.lag,
+                                                  v2excrptps,
+                                                  partybarriers.lag,
+                                                  v2psbars,
+                                                  natlpartyorg.lag,
+                                                  v2psorgs,
+                                                  partybranch.lag,
+                                                  v2psprbrch,
+                                                  v2stfisccap_ord,
+                                                  v2stfisccap,
+                                                  v2pepwrses, #Power distribution by wealth
+                                                  v2pepwrsoc, #Power distribution by social group
+                                                  v2csreprss,
+                                                  csrepress.1lag,
+                                                  osorg.1lag,
+                                                  v2cseeorgs,
+                                                  v2x_clpol,
+                                                  civlib.1lag,
+                                                  jucon.1lag,
+                                                  legcon.1lag,
 egaldem.1lag ,
 altinf.1lag,
 api.1lag,
@@ -231,6 +316,13 @@ country_id_year), by = "country_id_year")
 nelda2 <- nelda2 %>% mutate(winner.margin = ifelse(types == "Executive", v2elvotlrg/100, v2ellovtlg/100))
 nelda2 <- nelda2 %>% mutate(presidential = ifelse(types == "Executive", 1, 0))
 
+#
+
+nelda2 <- nelda2 %>% mutate(weakstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 0 | v2stfisccap_ord == 1, 1, 0)))
+nelda2 <- nelda2 %>% mutate(rentierstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 2, 1, 0)))
+nelda2 <- nelda2 %>% mutate(taxstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 3 | v2stfisccap_ord == 4, 1, 0)))
+
+
 nelda3 <- nelda2 %>% merge(massmob, by = "country_id_year")
 ```
 
@@ -266,6 +358,9 @@ ecav <- ecav %>% filter(Date >= Electiondate)
 ecav <- ecav %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
 ```
 
+
+
+
 Grouped summaries
 ```{r}
 count_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(n.events.pre = n())
@@ -289,11 +384,21 @@ ecav.pre <- ecav.pre %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == 
 size_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(median.participants.pre = median(ParticipantNumber))
 
 
+## Violence
+violence_data <- ecav %>% group_by(NeldaID) %>% summarize(antigov.violence = sum(antigov.violence, na.rm = T))
+violence_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(antigov.violence.pre = sum(antigov.violence, na.rm = T))
+
+
+
 ##Combined
 ecav_data <- left_join(count_data_post, duration_data, by = "NeldaID")
 ecav_data <- left_join(ecav_data, size_data, by = "NeldaID")
+ecav_data <- left_join(ecav_data, violence_data, by = "NeldaID")
+
 
 ecav_data_pre <- left_join(count_data_pre, size_data_pre, by = "NeldaID")
+ecav_data_pre <- left_join(ecav_data_pre, violence_data_pre, by = "NeldaID")
+
 ecav_data <- left_join(ecav_data, ecav_data_pre, by = "NeldaID")
 
 
@@ -308,8 +413,10 @@ Merge ECAV with NELDA
 nelda2.sub <- nelda2.sub %>% rename(NeldaID = electionid)
 nelda2.sub <- left_join(nelda2.sub, ecav_data, by = "NeldaID")
 
+
 ##Cleaning
 
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence)==T, 0, antigov.violence))
 nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post)==T, 0, n.events.post))
 nelda2.sub <- nelda2.sub %>% mutate(d.events.num = ifelse(is.na(d.events.num)==T, 0, d.events.num))
 nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(is.na(median.participants)==T, 0, median.participants))
@@ -318,6 +425,8 @@ nelda2.sub <- nelda2.sub %>% mutate(any.ecav.protest = ifelse(n.events.post >= 1
 
 ##Making the assumption that NAs for pre-election protest are zero
 nelda2.sub <- nelda2.sub %>% mutate(n.events.pre = ifelse(is.na(n.events.pre) == T, 0, n.events.pre))
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence.pre = ifelse(is.na(antigov.violence.pre) == T, 0, antigov.violence.pre))
+
 
 ```
 
@@ -332,6 +441,37 @@ Cutting out closed autocracies and liberal democracies
 
 ```{r}
 nelda3.sub <- nelda3 %>% filter(v2x_regime == 1 | v2x_regime == 2)
+```
+
+
+## World Bank urbanization data
+
+```{r}
+urban <- read.csv(here::here("Data", "urbanization_worldbank.csv"))
+test <- urban %>%
+  pivot_longer(cols = starts_with("X"),
+               names_to = "year")
+test <- test %>% mutate(year = gsub("X", "", year))
+
+#Next is line up country codes in test and nelda 2, then merge
+
+library(countrycode)
+
+test <- test %>% mutate(stateid = countrycode(sourcevar = Country.Code, origin = 'iso3c', destination = 'gwc'))
+test <- test %>% rename(urban.pct = value)
+test <- test %>% dplyr::select(year, urban.pct, stateid)
+
+nelda2.sub <- nelda2.sub %>% mutate(year = as.character(year))
+
+nelda2.sub <- nelda2.sub %>% left_join(test, by = c("stateid", "year"))
+
+```
+
+## Merge with winner share updated
+
+```{r}
+winner.shares <- read.csv(here::here("Data", "amended_vote_shares.csv"))
+nelda2.sub <- nelda2.sub %>% left_join(winner.shares, by = "NeldaID")
 ```
 
 
