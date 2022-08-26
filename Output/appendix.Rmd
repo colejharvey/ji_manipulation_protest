@@ -1,0 +1,180 @@
+---
+title: "Appendix: Not So Bad---The minimal effect of election fraud on protest intensity in non-democracies"
+author: "Cole J. Harvey (Oklahoma State University)"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+    bookdown::pdf_document2: default
+linkcolor: blue
+bibliography: C:/Users/colej/Documents/Research projects/bib_ch.bib
+#biblio-style: "apalike"
+fontsize: 12pt
+link-citations: yes
+toc: false
+csl: C:/Users/colej/Documents/Research projects/ji_manipulation_protest/american-journal-of-political-science.csl
+header-includes: \usepackage{booktabs}
+---
+
+## Hurdle models
+
+As noted in the main text, the distribution of the count data on protest events is highly skewed; the large majority of elections record zero protest events. This distribution requires an appropriate modeling strategy in order to avoid biased coefficient estimates. Hurdle models are one strategy for analysis of this kind of data [@mullahy1986;@feng2021]. The hurdle approach models the data generating process as a mixture model. One component of the model estimates the probability that each observation will belong to the zero component of the data; this is typically a binominal model, and the logit function is used in this case. The second component, for observations that take on a positive value, is modeled as a standard count model. In this case, due to the distribution of the positive counts, a negative binomial model is used. 
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(countrycode)
+library(readxl)
+library(vdemdata)
+library(lme4)
+library(interplot)
+library(lubridate)
+library(summarytools)
+library(stargazer)
+library(pscl)
+library(modelsummary)
+
+nelda2.sub <- read.csv(here::here("Data", "nelda2_sub.csv"))
+
+
+nelda2.sub <- nelda2.sub %>% mutate(legit_no_proc = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol))
+nelda2.sub <- nelda2.sub %>% mutate(legit_total = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol + v2exl_legitratio))
+
+
+
+##Naming nelda variables
+
+nelda2.sub <- nelda2.sub %>% rename(boycott = nelda14)
+nelda2.sub <- nelda2.sub %>% mutate(boycott = ifelse(boycott == "yes", 1, ifelse(boycott == "no", 0,
+                                                                                 NA)))
+
+##Creating economic crisis variable
+
+nelda2.sub <- nelda2.sub %>% mutate(econ.crisis = ifelse(is.na(e_miinflat) == T | is.na(gdpgro.1lag) == T, NA, ifelse(e_miinflat > 15 | gdpgro.1lag <= -0.012, 1, 0)))
+nelda2.sub <- nelda2.sub %>% mutate(econ.crisis = as.factor(econ.crisis))
+
+nelda2.sub <- nelda2.sub %>% mutate(gdp.crisis = ifelse(is.na(gdpgro.1lag) == T, NA, ifelse(gdpgro.1lag <= -0.012, 1, 0)))
+nelda2.sub <- nelda2.sub %>% mutate(inflat.crisis = ifelse(is.na(e_miinflat) == T, NA, ifelse(e_miinflat > 15, 1, 0)))
+
+nelda2.sub <- nelda2.sub %>% mutate(grievance.index = ifelse(is.na(e_migdppcln) == T, NA, e_migdppcln*v2xeg_eqdr))
+
+##Removing cases before 1990, when ECAV starts
+nelda2.sub <- nelda2.sub %>% filter(year >= 1990)
+
+## Removing cases where inc. loses
+nelda2.sub <- nelda2.sub %>% filter(inc.lose == 0)
+
+##Intmon as a factor
+nelda2.sub <- nelda2.sub %>% mutate(v2elintmon = as.factor(v2elintmon))
+
+
+nelda2.sub <- nelda2.sub %>% mutate(electoral.dem = ifelse(v2x_regime == 2, 1, 0))
+
+#Square of physint
+
+nelda2.sub <- nelda2.sub %>% mutate(physintlag.sq = physinteg.1lag^2)
+
+
+#Crisis as factor
+
+nelda2.sub <- nelda2.sub %>% mutate(econ.crisis.nelda.1lag = factor(econ.crisis.nelda.1lag))
+
+#Margins with updates
+
+nelda2.sub <- nelda2.sub %>% mutate(winner.share.upd = ifelse(types == "Executive", v2elvotlrg_amend/100, v2ellovtlg_amend/100))
+
+#Successful protest = new elections or new incumbent
+
+nelda2.sub <- nelda2.sub %>% mutate(protest.success = ifelse(inc.replaced.prot == 1 | new.elections.held == 1, 1, 0))
+
+#Protest cases only
+
+protest.cases <- nelda2.sub %>% filter(any.ecav.protest == 1)
+
+
+
+```
+
+
+
+```{r models, warning = FALSE, message = FALSE, include = F}
+model.n.base.hurd <- hurdle(n.events.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda2.sub %>% filter(gdpgro.1lag < 1), dist = "negbin")
+summary(model.n.base.hurd)
+
+model.n.base2.hurd <- hurdle(n.events.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda2.sub %>% filter(gdpgro.1lag < 1), dist = "negbin")
+summary(model.n.base2.hurd)
+
+model.n.griev.hurd <- hurdle(n.events.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, dist = "negbin", data = nelda2.sub %>% filter(gdpgro.1lag < 1))
+summary(model.n.griev.hurd)
+
+
+model.n.griev2.hurd <- hurdle(n.events.post ~ jucon.1lag + legcon.1lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda2.sub, dist = "negbin")
+
+model.n.griev3.hurd <- hurdle(n.events.post ~ jucon.1lag + legcon.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda2.sub, dist = "negbin")
+summary(model.n.griev3.hurd)
+```
+
+```{r custom-tidiers, include=FALSE}
+tidy.hurdle.count <- function(x, conf.int = FALSE, conf.level = 0.95, ...) {
+  
+  result <- summary(x)$coefficients$count %>%
+    tibble::as_tibble(rownames = "term") #%>%
+    #dplyr::rename(estimate = Estimate,
+    #              std.error = `Std. Error`,
+    #              statistic = `t value`,
+     #             p.value = `Pr(>|t|)`)
+  
+  if (conf.int) {
+    ci <- confint(x, level = conf.level)
+    result <- dplyr::left_join(result, ci, by = "term")
+  }
+  
+  result
+}
+
+#test <- summary(model.n.base.hurd)$coefficients$count
+
+test <- tidy.hurdle.count(model.n.base.hurd)
+
+#tbl_regression(test)
+```
+
+```{r zero-model-table, echo=FALSE}
+
+models <- list()
+models[['Model 1']] <- model.n.base.hurd
+models[['Model 2']] <- model.n.base2.hurd
+models[['Model 3']] <- model.n.griev.hurd
+models[['Model 4']] <- model.n.griev2.hurd
+models[['Model 5']] <- model.n.griev3.hurd
+
+
+modelsummary::modelsummary(models, coef_omit = "count", gof_omit = "R2", stars = T)
+
+
+```
+
+Table 1 shows the results of the binomial portion of the model; that is, it shows which coefficients are associated with any protest occurring after the election. The results are very similar to those in Table 1 in the main text. Presidential elections are the main influence associated with a higher probability of protest initiation in both tables. In both, the effect of electoral manipulation is most strongly felt in elections with low margins of victory (Model 2). In the other hurdle models, the severity of election fraud is not associated with increased protest risk. While the main findings are consistent between the hurdle models and the logit models presented in the main text, the hurdle models are even more pessimistic regarding the relationship between manipulation and protest: the coefficient is not statistically significant in any of the other four models in Table 1.
+
+
+
+```{r count-model-table, echo=FALSE}
+#knitr::kable(test)
+
+
+
+
+modelsummary::modelsummary(models, coef_omit = "zero", gof_omit = "R2", stars = T)
+```
+
+Table 2 presents the results from the count portion of the same hurdle models. These results are, likewise, very similar to those presented for the negative binomial models in the main text. Legislative constraints on the executive and presidential term limits show the strongest association with the number of post-election protests. The severity of electoral manipulation has no statistically significant association with the number of events in any model. 
+
+As a whole. the hurdle models tell the same story as the separate models in the main text. Election fraud may have a positive association with protest onset in a close election, but rarely otherwise. The number of post-election protests appears to have little to no association with election fraud. Economic grievances, likewise, appear to play little role. The factors that appear to matter most are political and institutional: term limits, election type, and the size and nature of the legislative opposition.
+
+```{r, include=FALSE}
+(-.682*.04) + (-4.3*.55) + (1.625*.55*.04)  # Low fraud, mean margin
+
+(-.682*1.67) + (-4.3*.55) + (1.625*.55*1.67)  # High fraud, mean margin
+
+#Expected quantity is lower when fraud is high
+```
+
+
+## References
