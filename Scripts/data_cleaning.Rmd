@@ -271,6 +271,7 @@ nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2elintmon.lag, v2elint
                                                   civlib.1lag,
                                                   jucon.1lag,
                                                   legcon.1lag,
+                                                  v2ex_elechog,
 egaldem.1lag ,
 altinf.1lag,
 api.1lag,
