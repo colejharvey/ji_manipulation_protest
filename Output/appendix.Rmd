@@ -89,6 +89,10 @@ nelda2.sub <- nelda2.sub %>% mutate(protest.success = ifelse(inc.replaced.prot =
 protest.cases <- nelda2.sub %>% filter(any.ecav.protest == 1)
 
 
+# Replacing NA with 0 for term limits variable in known parliamentary countries in legislative elections
+
+nelda2.sub <- nelda2.sub %>% mutate(inc.termlimit.num = ifelse(is.na(inc.termlimit.num) == T & v2ex_elechog == 0, 0, inc.termlimit.num))
+
 
 ```
 
