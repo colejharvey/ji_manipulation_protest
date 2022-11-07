@@ -1,5 +1,5 @@
 ---
-title: "Appendix: Not So Bad---The minimal effect of election fraud on protest intensity in non-democracies"
+title: "Appendix: A missing guardrail---The minimal effect of election fraud on protest intensity in non-democracies"
 author: "Cole J. Harvey (Oklahoma State University)"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -28,6 +28,7 @@ library(interplot)
 library(lubridate)
 library(summarytools)
 library(stargazer)
+library(cowplot)
 library(pscl)
 library(modelsummary)
 
@@ -179,6 +180,98 @@ As a whole. the hurdle models tell the same story as the separate models in the 
 
 #Expected quantity is lower when fraud is high
 ```
+
+## Marginal effects plots for grievance models
+
+The figures presented in this section illustrate the marginal effects for the grievance models in the main text (for both the binomial and count models of protest). Figure \@ref(fig:binary-plots) shows the marginal effects from Models 4 - 6 from the main text, while Figure \@ref(fig:count-plots) shows the results from Models 10 - 12. They demonstrate that the poor GDP growth, an economic crisis, and public corruption are not significantly associated with a changes in the marginal effect of election fraud on protest risk.
+
+
+```{r, include=FALSE}
+model.ecavbin.mm.crisis <- glmer(any.ecav.protest  ~ jucon.1lag + legcon.1lag +  osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag +     econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + urban.pct + rentierstate + taxstate + (1|country), nAGQ = 0, family = binomial,  data = nelda2.sub)
+#summary(model.ecavbin.mm.crisis)
+p.bin.crisis <- sjPlot::plot_model(model.ecavbin.mm.crisis, type = "pred", terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv"), title = "")
+
+
+
+model.ecavbin.mm.corr <- glmer(any.ecav.protest  ~ jucon.1lag + legcon.1lag +  osorg.1lag + pubseccorrup.lag +  natlpartyorg.lag +  pubseccorrup.lag +     pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + (1|country), nAGQ = 0, family = binomial,  data = nelda2.sub)
+#summary(model.ecavbin.mm.corr)
+p.bin.corr <- sjPlot::plot_model(model.ecavbin.mm.corr, type = "pred", terms = c("pubseccorrup.lag", "v2elirreg.inv"), title = "")
+
+
+model.ecavbin.mm.gdp <- glmer(any.ecav.protest  ~ jucon.1lag + legcon.1lag + gdpgro.1lag + osorg.1lag +   natlpartyorg.lag +     gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + (1|country), nAGQ = 0, family = binomial,  data = nelda2.sub %>% filter(gdpgro.1lag < 1))
+p.bin.gdp <- sjPlot::plot_model(model.ecavbin.mm.gdp, type = "pred", terms = c("gdpgro.1lag", "v2elirreg.inv"), title = "")
+
+```
+
+
+
+```{r count_models, include=FALSE}
+model.n.griev <- glm.nb(n.events.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = protest.cases %>% filter(gdpgro.1lag < 1))
+#summary(model.n.griev)
+
+
+p.count.gdp <-  sjPlot::plot_model(model.n.griev, type = "pred", terms = c("gdpgro.1lag", "v2elirreg.inv [.23, 2.12]"), title = "")
+
+model.n.griev2 <- glm.nb(n.events.post ~ jucon.1lag + legcon.1lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = protest.cases)
+#summary(model.n.griev2)
+p.count.crisis <- sjPlot::plot_model(model.n.griev2, type = "pred", terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv [.21, 2.13]"), title = "")
+
+model.n.griev3 <- glm.nb(n.events.post ~ jucon.1lag + legcon.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = protest.cases)
+#summary(model.n.griev3)
+p.count.corr <- sjPlot::plot_model(model.n.griev3, type = "pred", terms = c("pubseccorrup.lag", "v2elirreg.inv [.22, 2.11]"), title = "")
+```
+
+
+```{r binary-plots, fig.cap = "Economic grievances and any protest",  echo=FALSE, message=FALSE, warning=FALSE}
+plot_rows <-  plot_grid(p.bin.gdp, p.bin.crisis, p.bin.corr)
+
+title <- ggdraw() + 
+  draw_label(
+    "Predicted probabilities of any protest",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 7)
+  )
+plot_grid(
+  title, plot_rows,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+
+```
+
+```{r count-plots, fig.cap = "Economic grievances and number of protests", echo=FALSE, message=FALSE, warning=FALSE}
+plot_rows <-  plot_grid(p.count.gdp, p.count.crisis, p.count.corr)
+
+title <- ggdraw() + 
+  draw_label(
+    "Predicted number of protest events",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 7)
+  )
+plot_grid(
+  title, plot_rows,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+```
+
+\newpage
+
+
 
 
 ## References
