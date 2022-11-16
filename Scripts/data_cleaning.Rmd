@@ -39,6 +39,9 @@ nelda <- nelda %>% rename(opp.votegain = nelda27)
 nelda <- nelda %>% rename(nelda.protests.fraud = nelda30)
 nelda <- nelda %>% rename(new.elections.held = nelda37)
 nelda <- nelda %>% rename(inc.replaced.prot = nelda41)
+nelda <- nelda %>% rename(preelection_concerns = nelda11)
+nelda <- nelda %>% rename(harass_opp = nelda15)
+nelda <- nelda %>% rename(opp_leaders_prevented = nelda13)
 
 
 
@@ -51,6 +54,10 @@ nelda <- nelda %>% mutate(opp.fav.cancel = ifelse(nelda32 == "yes", 1, 0))
 nelda <- nelda %>% mutate(inc.lose = ifelse(inc.lose == "yes", 1, ifelse(inc.lose == "no", 0, NA)))
 
 nelda <- nelda %>% mutate(inc.termlimit.num = ifelse(types == "Legislative/Parliamentary" & inc.termlimit == "N/A", 0, ifelse(types == "Executive" & inc.termlimit == "yes", 1,                                                                                                                       ifelse(types == "Executive" & inc.termlimit == "no", 0, NA))))
+nelda <- nelda %>% mutate(preelection_concerns = ifelse(preelection_concerns == "yes", 1, ifelse(preelection_concerns == "no", 0, NA)))
+nelda <- nelda %>% mutate(harass_opp = ifelse(nelda3 == "No", 1, ifelse(harass_opp == "yes", 1, ifelse(harass_opp == "no", 0, NA))))
+nelda <- nelda %>% mutate(opp_leaders_prevented = ifelse(nelda3 == "No", "In general", ifelse(opp_leaders_prevented == "yes", "Specifically", ifelse(opp_leaders_prevented == "no", "No", NA))))
+
                           
                           
           
@@ -328,9 +335,143 @@ nelda2 <- nelda2 %>% mutate(taxstate = ifelse(is.na(v2stfisccap_ord) == T, NA, i
 
 nelda3 <- nelda %>% dplyr::select(ccode, country, year, electionid, election_mdy)
 nelda3 <- nelda3 %>% mutate(election_year = year)
-nelda3 <- massmob %>% left_join(nelda3, by = c("ccode", "year")) #Nelda3 is in progress, need to figure out a) if needed, b) how to include pre-election and post-election mobilization
+nelda3 <- massmob %>% left_join(nelda3, by = c("ccode", "year"))
 ```
 
+
+
+
+
+
+
+
+##Nelda2 looks at NELDA variables as DV
+
+
+```{r}
+rm(vdem.data)
+rm(vdem.recent)
+rm(lji)
+rm(nelda)
+rm(massmob)
+```
+
+```{r}
+nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
+```
+
+```{r}
+ecav.pre <- ecav %>% filter(Date < Electiondate)
+ecav.pre <- ecav.pre %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+
+ecav <- ecav %>% filter(Date >= Electiondate)
+ecav <- ecav %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+```
+
+
+
+
+Grouped summaries
+```{r}
+count_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(n.events.pre = n())
+count_data_post <- ecav %>% group_by(NeldaID) %>% summarize(n.events.post = n())
+
+
+
+##Duration
+max_date <- ecav %>% group_by(NeldaID) %>% summarize(latest.event = max(Date))
+min_date <- ecav %>% group_by(NeldaID) %>% summarize(earliest.event = min(Date))
+duration_data <- left_join(min_date, max_date, by = "NeldaID")
+duration_data <- duration_data %>% mutate(d.events = as.duration(interval(earliest.event, latest.event)))
+duration_data <- duration_data %>% mutate(d.events.num = as.numeric(d.events, "days"))
+duration_data <- duration_data %>% mutate(d.events.num = ifelse(d.events.num == 0, 1, d.events.num)) #1-day events
+
+##Size
+ecav <- ecav %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
+size_data <- ecav %>% group_by(NeldaID) %>% summarize(median.participants = median(ParticipantNumber, na.rm = T))
+
+ecav.pre <- ecav.pre %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
+size_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(median.participants.pre = median(ParticipantNumber, na.rm = T))
+
+
+## Violence
+violence_data <- ecav %>% group_by(NeldaID) %>% summarize(antigov.violence = sum(antigov.violence, na.rm = T))
+violence_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(antigov.violence.pre = sum(antigov.violence, na.rm = T))
+
+
+
+##Combined
+ecav_data <- left_join(count_data_post, duration_data, by = "NeldaID")
+ecav_data <- left_join(ecav_data, size_data, by = "NeldaID")
+ecav_data <- left_join(ecav_data, violence_data, by = "NeldaID")
+
+
+ecav_data_pre <- left_join(count_data_pre, size_data_pre, by = "NeldaID")
+ecav_data_pre <- left_join(ecav_data_pre, violence_data_pre, by = "NeldaID")
+
+ecav_data <- left_join(ecav_data, ecav_data_pre, by = "NeldaID")
+
+
+
+
+## Merge back with NELDA 2
+```
+
+Merge ECAV with NELDA
+
+```{r}
+nelda2.sub <- nelda2.sub %>% rename(NeldaID = electionid)
+nelda2.sub <- left_join(nelda2.sub, ecav_data, by = "NeldaID")
+
+
+##Cleaning
+
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence)==T, 0, antigov.violence))
+nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post)==T, 0, n.events.post))
+nelda2.sub <- nelda2.sub %>% mutate(d.events.num = ifelse(is.na(d.events.num)==T, 0, d.events.num))
+#nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(is.na(median.participants)==T, 0, median.participants))
+
+nelda2.sub <- nelda2.sub %>% mutate(any.ecav.protest = ifelse(n.events.post >= 1, 1, 0))
+
+##Making the assumption that NAs for pre-election protest are zero
+nelda2.sub <- nelda2.sub %>% mutate(n.events.pre = ifelse(is.na(n.events.pre) == T, 0, n.events.pre))
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence.pre = ifelse(is.na(antigov.violence.pre) == T, 0, antigov.violence.pre))
+
+
+```
+
+
+```{r}
+#nelda3 <- nelda3 %>% mutate(protests.postelex = ifelse(protests == 1 & protesterdemand1 == "political behavior, process", 1, 0))
+
+#nelda3 <- nelda3 %>% mutate(protests.postelex.quant = ifelse(protests.postelex == 1, protestnumber, 0))
+```
+
+
+
+
+## World Bank urbanization data
+
+```{r}
+urban <- read.csv(here::here("Data", "urbanization_worldbank.csv"))
+test <- urban %>%
+  pivot_longer(cols = starts_with("X"),
+               names_to = "year")
+test <- test %>% mutate(year = gsub("X", "", year))
+
+#Next is line up country codes in test and nelda 2, then merge
+
+library(countrycode)
+
+test <- test %>% mutate(stateid = countrycode(sourcevar = Country.Code, origin = 'iso3c', destination = 'gwc'))
+test <- test %>% rename(urban.pct = value)
+test <- test %>% dplyr::select(year, urban.pct, stateid)
+
+nelda2.sub <- nelda2.sub %>% mutate(year = as.character(year))
+
+nelda2.sub <- nelda2.sub %>% left_join(test, by = c("stateid", "year"))
+
+```
 
 
 
@@ -541,148 +682,12 @@ count_data_mm_pre <- nelda3.sub.pre %>% group_by(electionid) %>% summarize(n.eve
 count_data_mm_post <- nelda3.sub.post %>% group_by(electionid) %>% summarize(n.events.massmob.post = sum(protestnumber))
 
 
-size_data_mm_pre <- nelda3.sub.pre %>% group_by(electionid) %>% summarize(median.participants.pre = median(participants_category_ordered, na.rm = T))
-size_data_mm_post <- nelda3.sub.post %>% group_by(electionid) %>% summarize(median.participants.post = median(participants_category_ordered, na.rm = T))
+size_data_mm_pre <- nelda3.sub.pre %>% group_by(electionid) %>% summarize(median.participants.mm.pre = median(participants_category_ordered, na.rm = T))
+size_data_mm_post <- nelda3.sub.post %>% group_by(electionid) %>% summarize(median.participants.mm.post = median(participants_category_ordered, na.rm = T))
 
 
 ```
 
-
-
-##Nelda2 looks at NELDA variables as DV
-
-
-```{r}
-rm(vdem.data)
-rm(vdem.recent)
-rm(lji)
-rm(nelda)
-rm(massmob)
-```
-
-```{r}
-nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
-```
-
-```{r}
-ecav.pre <- ecav %>% filter(Date < Electiondate)
-ecav.pre <- ecav.pre %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
-
-ecav <- ecav %>% filter(Date >= Electiondate)
-ecav <- ecav %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
-```
-
-
-
-
-Grouped summaries
-```{r}
-count_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(n.events.pre = n())
-count_data_post <- ecav %>% group_by(NeldaID) %>% summarize(n.events.post = n())
-
-
-
-##Duration
-max_date <- ecav %>% group_by(NeldaID) %>% summarize(latest.event = max(Date))
-min_date <- ecav %>% group_by(NeldaID) %>% summarize(earliest.event = min(Date))
-duration_data <- left_join(min_date, max_date, by = "NeldaID")
-duration_data <- duration_data %>% mutate(d.events = as.duration(interval(earliest.event, latest.event)))
-duration_data <- duration_data %>% mutate(d.events.num = as.numeric(d.events, "days"))
-duration_data <- duration_data %>% mutate(d.events.num = ifelse(d.events.num == 0, 1, d.events.num)) #1-day events
-
-##Size
-ecav <- ecav %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
-size_data <- ecav %>% group_by(NeldaID) %>% summarize(median.participants = median(ParticipantNumber, na.rm = T))
-
-ecav.pre <- ecav.pre %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
-size_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(median.participants.pre = median(ParticipantNumber, na.rm = T))
-
-
-## Violence
-violence_data <- ecav %>% group_by(NeldaID) %>% summarize(antigov.violence = sum(antigov.violence, na.rm = T))
-violence_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(antigov.violence.pre = sum(antigov.violence, na.rm = T))
-
-
-
-##Combined
-ecav_data <- left_join(count_data_post, duration_data, by = "NeldaID")
-ecav_data <- left_join(ecav_data, size_data, by = "NeldaID")
-ecav_data <- left_join(ecav_data, violence_data, by = "NeldaID")
-
-
-ecav_data_pre <- left_join(count_data_pre, size_data_pre, by = "NeldaID")
-ecav_data_pre <- left_join(ecav_data_pre, violence_data_pre, by = "NeldaID")
-
-ecav_data <- left_join(ecav_data, ecav_data_pre, by = "NeldaID")
-
-
-
-
-## Merge back with NELDA 2
-```
-
-Merge ECAV with NELDA
-
-```{r}
-nelda2.sub <- nelda2.sub %>% rename(NeldaID = electionid)
-nelda2.sub <- left_join(nelda2.sub, ecav_data, by = "NeldaID")
-
-
-##Cleaning
-
-nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence)==T, 0, antigov.violence))
-nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post)==T, 0, n.events.post))
-nelda2.sub <- nelda2.sub %>% mutate(d.events.num = ifelse(is.na(d.events.num)==T, 0, d.events.num))
-#nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(is.na(median.participants)==T, 0, median.participants))
-
-nelda2.sub <- nelda2.sub %>% mutate(any.ecav.protest = ifelse(n.events.post >= 1, 1, 0))
-
-##Making the assumption that NAs for pre-election protest are zero
-nelda2.sub <- nelda2.sub %>% mutate(n.events.pre = ifelse(is.na(n.events.pre) == T, 0, n.events.pre))
-nelda2.sub <- nelda2.sub %>% mutate(antigov.violence.pre = ifelse(is.na(antigov.violence.pre) == T, 0, antigov.violence.pre))
-
-
-```
-
-
-```{r}
-#nelda3 <- nelda3 %>% mutate(protests.postelex = ifelse(protests == 1 & protesterdemand1 == "political behavior, process", 1, 0))
-
-#nelda3 <- nelda3 %>% mutate(protests.postelex.quant = ifelse(protests.postelex == 1, protestnumber, 0))
-```
-
-
-
-
-## World Bank urbanization data
-
-```{r}
-urban <- read.csv(here::here("Data", "urbanization_worldbank.csv"))
-test <- urban %>%
-  pivot_longer(cols = starts_with("X"),
-               names_to = "year")
-test <- test %>% mutate(year = gsub("X", "", year))
-
-#Next is line up country codes in test and nelda 2, then merge
-
-library(countrycode)
-
-test <- test %>% mutate(stateid = countrycode(sourcevar = Country.Code, origin = 'iso3c', destination = 'gwc'))
-test <- test %>% rename(urban.pct = value)
-test <- test %>% dplyr::select(year, urban.pct, stateid)
-
-nelda2.sub <- nelda2.sub %>% mutate(year = as.character(year))
-
-nelda2.sub <- nelda2.sub %>% left_join(test, by = c("stateid", "year"))
-
-```
-
-## Merge with winner share updated
-
-```{r}
-winner.shares <- read.csv(here::here("Data", "amended_vote_shares.csv"))
-nelda2.sub <- nelda2.sub %>% left_join(winner.shares, by = "NeldaID")
-```
 
 
 ## Merge data from nelda3.sub with nelda2.sub
@@ -696,11 +701,34 @@ mm_data_comb <- left_join(mm_data_pre_comb, mm_data_post_comb, by = "electionid"
 
 mm_data_comb <- mm_data_comb %>% rename(NeldaID = electionid)
 
-nelda2.sub <- nelda2.sub %>% left_join(mm_data_comb, by = "NeldaID")  ## Double check to make sure this joining works
+nelda3.sub <- nelda2.sub %>% left_join(mm_data_comb, by = "NeldaID")  ## Double check to make sure this joining works
+
+
+## Code NAs for number of protests as 0s (these reflect election years recorded in NELDA where there were no protests recorded by MM)
+
+nelda3.sub <- nelda3.sub %>% mutate(n.events.massmob.pre = ifelse(is.na(n.events.massmob.pre)==T, 0, n.events.massmob.pre))
+nelda3.sub <- nelda3.sub %>% mutate(n.events.massmob.post = ifelse(is.na(n.events.massmob.post)==T, 0, n.events.massmob.post))
+
+nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.pre = ifelse(is.na(median.participants.mm.pre)==T & n.events.massmob.pre == 0, 0, median.participants.mm.pre))
+nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.post = ifelse(is.na(median.participants.mm.post)==T & n.events.massmob.post == 0, 0, median.participants.mm.pre))
+
+## Rounding participant median numbers down (removes half-steps)
+
+nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.post = floor(median.participants.mm.post))
+nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.pre = floor(median.participants.mm.pre))
 
 
 ```
 
+
+## Merge with winner share updated
+
+```{r}
+winner.shares <- read.csv(here::here("Data", "amended_vote_shares.csv"))
+nelda2.sub <- nelda2.sub %>% left_join(winner.shares, by = "NeldaID")
+nelda3.sub <- nelda3.sub %>% left_join(winner.shares, by = "NeldaID")
+
+```
 
 ## Writing
 

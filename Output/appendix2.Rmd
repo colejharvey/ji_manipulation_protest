@@ -1,0 +1,218 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(countrycode)
+library(readxl)
+library(vdemdata)
+library(lme4)
+library(interplot)
+library(lubridate)
+library(summarytools)
+library(stargazer)
+library(cowplot)
+library(pscl)
+library(modelsummary)
+library(ggeffects)
+library(MASS)
+
+nelda3.sub <- read.csv(here::here("Data", "nelda3_sub.csv"))
+
+
+nelda3.sub <- nelda3.sub %>% mutate(legit_no_proc = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol))
+nelda3.sub <- nelda3.sub %>% mutate(legit_total = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol + v2exl_legitratio))
+
+
+
+##Naming nelda variables
+
+nelda3.sub <- nelda3.sub %>% rename(boycott = nelda14)
+nelda3.sub <- nelda3.sub %>% mutate(boycott = ifelse(boycott == "yes", 1, ifelse(boycott == "no", 0,
+                                                                                 NA)))
+
+##Creating economic crisis variable
+
+nelda3.sub <- nelda3.sub %>% mutate(econ.crisis = ifelse(is.na(e_miinflat) == T | is.na(gdpgro.1lag) == T, NA, ifelse(e_miinflat > 15 | gdpgro.1lag <= -0.012, 1, 0)))
+nelda3.sub <- nelda3.sub %>% mutate(econ.crisis = as.factor(econ.crisis))
+
+nelda3.sub <- nelda3.sub %>% mutate(gdp.crisis = ifelse(is.na(gdpgro.1lag) == T, NA, ifelse(gdpgro.1lag <= -0.012, 1, 0)))
+nelda3.sub <- nelda3.sub %>% mutate(inflat.crisis = ifelse(is.na(e_miinflat) == T, NA, ifelse(e_miinflat > 15, 1, 0)))
+
+nelda3.sub <- nelda3.sub %>% mutate(grievance.index = ifelse(is.na(e_migdppcln) == T, NA, e_migdppcln*v2xeg_eqdr))
+
+##Removing cases before 1990, when ECAV starts
+nelda3.sub <- nelda3.sub %>% filter(year >= 1990)
+
+## Removing cases where inc. loses
+nelda3.sub <- nelda3.sub %>% filter(inc.lose == 0)
+
+##Intmon as a factor
+nelda3.sub <- nelda3.sub %>% mutate(v2elintmon = as.factor(v2elintmon))
+
+
+nelda3.sub <- nelda3.sub %>% mutate(electoral.dem = ifelse(v2x_regime == 2, 1, 0))
+
+#Square of physint
+
+nelda3.sub <- nelda3.sub %>% mutate(physintlag.sq = physinteg.1lag^2)
+
+
+#Crisis as factor
+
+nelda3.sub <- nelda3.sub %>% mutate(econ.crisis.nelda.1lag = factor(econ.crisis.nelda.1lag))
+
+#Margins with updates
+
+nelda3.sub <- nelda3.sub %>% mutate(winner.share.upd = ifelse(types == "Executive", v2elvotlrg_amend/100, v2ellovtlg_amend/100))
+
+#Successful protest = new elections or new incumbent
+
+nelda3.sub <- nelda3.sub %>% mutate(protest.success = ifelse(inc.replaced.prot == 1 | new.elections.held == 1, 1, 0))
+
+#Protest cases only
+
+protest.cases <- nelda3.sub %>% filter(any.ecav.protest == 1)
+
+
+# Replacing NA with 0 for term limits variable in known parliamentary countries in legislative elections
+
+nelda3.sub <- nelda3.sub %>% mutate(inc.termlimit.num = ifelse(is.na(inc.termlimit.num) == T & v2ex_elechog == 0, 0, inc.termlimit.num))
+
+## Changing participants from numeric category to text
+nelda3.sub <- nelda3.sub %>% mutate(median.participants = round(median.participants))
+nelda3.sub <- nelda3.sub %>% mutate(particpants_categorical = ifelse(is.na(median.participants)==T, NA, ifelse(median.participants == 1, "Less than 10",
+                     ifelse(2, "10 to 99", ifelse(3, "100 to 999",
+                                                  ifelse(4, "1000 to 9,999", ifelse(5, "Greater than 10,000", NA)))))))
+nelda3.sub <- nelda3.sub %>% mutate(particpants_categorical = as.factor(particpants_categorical))
+
+## Median particiants (MM) as factor
+
+nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.post = as.factor(median.participants.mm.post))
+
+```
+
+
+## Protest size (categories) using mass mobilization data
+
+```{r}
+model.size.base <- polr(as.factor(median.participants.mm.post) ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + harass_opp +  pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + median.participants.mm.pre, data = nelda3.sub %>% filter(gdpgro.1lag < 1))
+summary(model.size.base)
+
+model.size.base2 <- polr(median.participants.mm.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + harass_opp + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + median.participants.mm.pre, data = nelda3.sub %>% filter(gdpgro.1lag < 1))
+summary(model.size.base2)
+
+model.size.griev <- polr(as.factor(median.participants.mm.post) ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + harass_opp +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + median.participants.mm.pre, data = nelda3.sub %>% filter(gdpgro.1lag < 1))
+summary(model.size.griev)
+
+
+model.size.griev2 <- polr(as.factor(median.participants.mm.post) ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + + harass_opp + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + median.participants.mm.pre, data = nelda3.sub)
+summary(model.size.griev2)
+
+model.size.griev3 <- polr(as.factor(median.participants.mm.post) ~ jucon.1lag + legcon.1lag + altinf.1lag + harass_opp +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + median.participants.mm.pre, data = nelda3.sub)
+summary(model.size.griev3)
+```
+
+
+Plotting above models
+
+```{r}
+##Winning margin
+dat <- ggpredict(model.size.base2, terms = c("winner.share.upd", "v2elirreg.inv [-.47, 1.77]"))
+dat.sub <- dat %>% dplyr::filter(response.level == "0" | response.level == "2" | response.level == "4" | response.level == "6")
+plot(dat.sub)
+
+
+dat_max <- ggpredict(model.size.base2, terms = c("winner.share.upd", "v2elirreg.inv [-2.3, 3.2]"))
+dat.sub <- dat_max %>% dplyr::filter(response.level == "0" | response.level == "3" | response.level == "6")
+plot(dat.sub)
+```
+
+
+
+```{r}
+## Econ grievance
+dat <- ggpredict(model.size.griev2, terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv"))
+dat.sub <- dat %>% dplyr::filter(response.level == "0" | response.level == "2" | response.level == "4" | response.level == "6")
+plot(dat.sub)
+
+
+dat_max <- ggpredict(model.size.griev2, terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv [-2.3, 3.2]"))
+dat.sub <- dat %>% dplyr::filter(response.level == "0" | response.level == "3" | response.level == "6")
+plot(dat.sub)
+```
+
+
+
+## Hurdle models with MM quantity
+
+
+```{r models-hurdle-mm, warning = FALSE, message = FALSE, include = F}
+model.n.base.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda3.sub %>% filter(gdpgro.1lag < 1), dist = "negbin")
+summary(model.n.base.hurd.mm)
+
+model.n.base2.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda3.sub %>% filter(gdpgro.1lag < 1), dist = "negbin")
+summary(model.n.base2.hurd.mm)
+
+model.n.griev.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, dist = "negbin", data = nelda3.sub %>% filter(gdpgro.1lag < 1))
+summary(model.n.griev.hurd.mm)
+
+
+model.n.griev2.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda3.sub, dist = "negbin")
+summary(model.n.griev2.hurd.mm)
+
+model.n.griev3.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate | jucon.1lag + legcon.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = nelda3.sub, dist = "negbin")
+summary(model.n.griev3.hurd.mm)
+```
+
+## Plots for hurdles
+
+```{r}
+dat <- ggpredict(model.n.base2.hurd.mm, terms = c("winner.share.upd", "v2elirreg.inv [-.45, 1.78]")) 
+p.mm.margin <- plot(dat)
+p.mm.margin + coord_cartesian(ylim = c(0, 100))
+```
+
+
+
+```{r custom-tidiers, include=FALSE}
+tidy.hurdle.count <- function(x, conf.int = FALSE, conf.level = 0.95, ...) {
+  
+  result <- summary(x)$coefficients$count %>%
+    tibble::as_tibble(rownames = "term") #%>%
+    #dplyr::rename(estimate = Estimate,
+    #              std.error = `Std. Error`,
+    #              statistic = `t value`,
+     #             p.value = `Pr(>|t|)`)
+  
+  if (conf.int) {
+    ci <- confint(x, level = conf.level)
+    result <- dplyr::left_join(result, ci, by = "term")
+  }
+  
+  result
+}
+
+#test <- summary(model.n.base.hurd)$coefficients$count
+
+test <- tidy.hurdle.count(model.n.base.hurd)
+
+#tbl_regression(test)
+```
+
+```{r zero-model-table, echo=FALSE}
+
+models <- list()
+models[['Model 1']] <- model.n.base.hurd
+models[['Model 2']] <- model.n.base2.hurd
+models[['Model 3']] <- model.n.griev.hurd
+models[['Model 4']] <- model.n.griev2.hurd
+models[['Model 5']] <- model.n.griev3.hurd
+
+
+modelsummary::modelsummary(models, coef_omit = "count", gof_omit = "R2", stars = T)
+
+
+```

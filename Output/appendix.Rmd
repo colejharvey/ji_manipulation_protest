@@ -31,6 +31,7 @@ library(stargazer)
 library(cowplot)
 library(pscl)
 library(modelsummary)
+library(MASS)
 
 nelda2.sub <- read.csv(here::here("Data", "nelda2_sub.csv"))
 
@@ -94,6 +95,16 @@ protest.cases <- nelda2.sub %>% filter(any.ecav.protest == 1)
 
 nelda2.sub <- nelda2.sub %>% mutate(inc.termlimit.num = ifelse(is.na(inc.termlimit.num) == T & v2ex_elechog == 0, 0, inc.termlimit.num))
 
+## Changing participants from numeric category to text
+nelda2.sub <- nelda2.sub %>% mutate(median.participants = round(median.participants))
+nelda2.sub <- nelda2.sub %>% mutate(particpants_categorical = ifelse(is.na(median.participants)==T, NA, ifelse(median.participants == 1, "Less than 10",
+                     ifelse(2, "10 to 99", ifelse(3, "100 to 999",
+                                                  ifelse(4, "1000 to 9,999", ifelse(5, "Greater than 10,000", NA)))))))
+nelda2.sub <- nelda2.sub %>% mutate(particpants_categorical = as.factor(particpants_categorical))
+
+## Median particiants (MM) as factor
+
+nelda2.sub <- nelda2.sub %>% mutate(median.participants.mm.post = as.factor(median.participants.mm.post))
 
 ```
 
@@ -268,6 +279,41 @@ plot_grid(
   rel_heights = c(0.1, 1)
 )
 ```
+
+## Protest size (categories) using mass mobilization data
+
+
+
+
+```{r}
+## Econ grievance
+dat <- ggpredict(model.size.griev2, terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv"))
+dat.sub <- dat %>% dplyr::filter(response.level == "0" | response.level == "2" | response.level == "4" | response.level == "6")
+plot(dat.sub)
+
+
+dat_max <- ggpredict(model.size.griev2, terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv [-2.3, 3.2]"))
+dat.sub <- dat %>% dplyr::filter(response.level == "0" | response.level == "3" | response.level == "6")
+plot(dat.sub)
+```
+
+
+## Protest event quantity, MM version
+
+```{r}
+protest.cases.mm <- nelda2.sub %>% filter(n.events.massmob.post >= 1)
+
+ ## This yields only 43 observations, do not run further.
+
+model.n.base.mm <- glm.nb(n.events.massmob.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  + v2elintmon +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate, data = protest.cases %>% filter(gdpgro.1lag < 1))
+summary(model.n.base.mm)
+```
+
+
+
+
+
+
 
 \newpage
 
