@@ -45,7 +45,7 @@ nelda <- nelda %>% rename(opp_leaders_prevented = nelda13)
 
 
 
-
+nelda <- nelda %>% mutate(elections.cancel.prot = ifelse(is.na(new.elections.held)==T, NA, ifelse(nelda35 == "yes" & new.elections.held == "yes", 1, 0)))
 nelda <- nelda %>% mutate(first.mp.election = ifelse(first.mp.election == "yes", 1, ifelse(first.mp.election == "no", 0, NA)))
 nelda <- nelda %>% mutate(protests = ifelse(protests == "yes", 1, ifelse(protests == "no", 0, NA)))
 nelda <- nelda %>% mutate(inc.fav.cancel = ifelse(inc.fav.cancel == "yes", 1, ifelse(inc.fav.cancel == "no", 0, NA)))

@@ -1,0 +1,273 @@
+---
+title: "Draft: A missing guardrail---The minimal effect of election fraud on protest intensity in non-democracies"
+author: "Cole J. Harvey (Oklahoma State University)"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+    bookdown::pdf_document2: default
+linkcolor: blue
+bibliography: C:/Users/colej/Documents/Research projects/bib_ch.bib
+#biblio-style: "apalike"
+fontsize: 12pt
+link-citations: yes
+toc: false
+csl: C:/Users/colej/Documents/Research projects/ji_manipulation_protest/american-journal-of-political-science.csl
+header-includes: \usepackage{booktabs}
+abstract: "The risk of mass protest figures prominently in many models of election manipulation, as a deterrent to tampering with elections. Yet election manipulation is common in non-democracies, while protest is rare, and successful protest rarer still. Using count data on protest events from 647 elections from 1990 to 2012, this paper argues that the risk to incumbents has been overstated in prior work. Specifically, by treating protest as a binary event, previous research has overestimated the strength of protest movements relative to the incumbent's institutional resources. The results show that the level of fraud has no bearing on the number of protests after an election, though protest initiation is more likely in high-fraud elections with low margins of victory. This pessimistic finding implies that, rather than serving as a constraint, the risk of protest creates a perverse incentive to manipulate as much as possible in order to achieve a large official vote-share."
+---
+
+
+On August 9, 2020, Belarus held an election in which President Aleksander Lukashenko ran for a sixth term. The official results credited Lukashenko with over 80\% of the vote, a result which was regarded by observers as wildly inflated [@GolosPlatformPresents2020]. In response, hundreds of thousands of Belarusians took to the streets over the course of several months. Though the protests put significant strain on the regime, a harsh campaign of repression ultimately quelled the protests and President Lukashenko was inaugurated into a new five-year term. The Belarusian case offers a useful illustration of a central puzzle in the study of election manipulation: why did the risk of costly protest fail to deter the incumbent from engaging in such widespread fraud? And why did the regime use fraud to claim such an implausibly high margin of victory?
+
+Events like those in Belarus are puzzling because many theories of election manipulation expect that incumbents will work hard to avoid them. A large, sustained protest movement creates a moment of heightened risk for the regime; the uncertainty of the outcome creates opportunities for elite defection, splits in the security services, and other negative outcomes.  On some occasions, like Ukraine's Orange Revolution or the People Power Revolution in the Philippines, these protests can result in the fall of an incumbent and a political opening. For this reason, many scholars---especially those working in the formal modeling tradition---have identified the risk that election manipulation will spark protest as a major deterrent to regimes wishing to engineer election outcomes. Most often, though, non-democratic states can rely on superior resources, elite solidarity, and repressive capacity to quash electoral protests. How threatening, then, are electoral protests really, and can that threat constrain electoral manipulation by governments?
+
+Research on the risk posed to non-democratic governments by electoral protest often acknowledges---whether explicitly or implicitly---the importance of broad-based protest campaigns, rather than one-off events [@Bunce2006;@tucker2007;@DAnieri2006;@Carnaghan2016;@bunce2010]. As Brancati [-@Brancati2016] finds, approximately two-thirds of pro-democracy electoral protests ended within three days, posing little threat to incumbents. Only about ten percent of such protests are widespread and long-lasting enough to see incumbents fall. This implicit assumption has largely been overlooked in theories and empirical studies of the relationship between election manipulation and protest, however. In most cases, the risk of protest has both been conceptualized and operationalized as a binary outcome: protests occur or they do not. This approach obscures the importance of the number of electoral protests in a ruling party's calculation of the risk involved in manipulation an election. Small, short-lived protests may be easily contained by a well-resourced government, while a long-lasting movement with a large number of protest events poses a more significant challenge. 
+
+
+Using cross-national data on 647 elections from 1990 to 2012 where incumbents claimed victory, adapted from the recently-released Electoral Contention and Violence (ECAV) dataset [@Daxecker2019], this paper finds support for the hypothesis that more fraudulent elections are associated with a higher risk that any post-election protest event occurs. This is in keeping with the formal-modeling literature, which predicts that overreach in the form of election fraud indicates government weakness, making opposition groups confident of winning a conflict in the streets. However, there is no statistically significant association between the level of election fraud and the number of protest events. This suggests a more complex relationship between election fraud and protest, undermining the argument that protest risk is a major deterrent to electoral malfeasance. 
+
+Since fraud is not associated with the overall number of events in a protest wave, the risk to governments has likely been overemphasized. That is, even if protests do break out in response to large-scale fraud, the government has many tools it may deploy to curtail them. Once protests begin, the noisy signal of regime strength provided by the election is replaced by a very clear signal: the force of the regime's response to the emerging protest movement in contest with the mobilizational capacity of the opposition.  To the extent that larger protest waves are more damaging to the government than small ones, protest risk does not appear to be a substantial constraint on the severity of election fraud. Troublingly, these findings indicate that ruling parties should follow an 'all-in' strategy on election manipulation. More manipulation is not associated with a larger number of protests, but a large margin of victory is associated with a lower risk of protest initiation. These results help explain both the relative paucity of electoral protests, the rarity of their success in overturning incumbent regimes, and governments' attempts to claim implausibly high margins of victory. 
+
+# Literature review
+
+
+Broadly speaking, there are thought to be two mechanisms by which election manipulation leads to protest. The first is through revealing information about the strength of the government or ruling party. This information, in turn, feeds into strategic decision-making by opposition groups.  This logic is often seen in formal theory models [@Egorov2021;@chernykh2015third]. Several prominent models of electoral manipulation argue that the risk of mass post-election protest helps restrain incumbents who might otherwise prefer larger levels of manipulation [@magaloni2010; @Little2015; @Little2012; @birch2011; @Fearon2011;@Luo2020;@Rozenas2016b]. The risk of mass protest in these models is assumed to constitute a significant guardrail for election integrity in democracies, and a significant challenge for ruling parties in non-democracies. Building on this logic, researchers have proposed that third-party institutions---like election monitors [@Little2012;@Hyde2014; @daxecker2012], civil society groups [@birch2017getting], and courts [@Chernykh2015]---can reduce manipulation and increase protest risk by revealing information about electoral malfeasance.
+
+
+Despite this consensus in the formal literature, there is relatively little empirical evidence to support the claim that manipulation per se indicates weakness, and thus increases protest risk. On the contrary, Simpser [-@Simpser2011] shows support for the alternative view that excessive manipulation can induce cooperation from opposition groups, elites, and other actors by revealing information about regime strength. Similarly, the type of manipulation employed can convey information about the ruling party's capacity to mobilize, with falsification providing the least credible information [@Harvey2020]. In this way, large-scale manipulation can contribute to a ruling party's ability to produce a large, stabilizing majority vote-share [@magaloni2006]. Similarly, Luo and Rozenas [-@Luo2020] posit that ex post fraud is more likely to result in protest than ex ante manipulation, though this stands in contrast with the finding that parties are more likely to protest elections after ex ante changes to the rules [@chernykh2014]. In sum, it is likely that manipulation *may* signal regime weakness, but empirical works suggests that this is more likely when margins of victory are narrow and when falsification is a major tool.
+
+
+
+<!--  One critique of this view, although still within the information/strategic framework, comes from Simpser's [-@Simpser2011] pathbreaking book. Simpser argues that when wanipulation efforts are excessive---well beyond what is needed simply to win---they demonstrate the organizational capacity, resources, and manpower of the ruling party [@Simpser2013]. Large-scale manipulation is, thus, a signal of strength rather than weakness, and can deter protest. By contrast, partial manipulation efforts that fail to secure a large majority vote-share signals the government lacks both popular support and mobilizational capacity, making opposition protest more likely. -->
+
+
+Without disputing that election manipulation conveys information, a second school of thought has emphasized the ways in which biased elections may predispose individuals to engage in protest [@kuntz2009]. In this view, election manipulation acts as a grievance shared by individuals who prefer to see the ruling party lose the election---especially when it appears that fraud may have been decisive [@kuntz_more_2009]. Belief in a stolen election is a particularly motivating kind of grievance, because it acts to focus all the diverse personal grievances individuals may have against the regime into one moment of opportunity for action [@tucker2007], possibly initiating a protest cascade [@Kuran1991]. This conception is closely connected to the idea that manipulated elections carry legitimacy costs for the ruling party [@birch2011]. 
+
+For example, ballot-stuffing and voter coercion have been shown to generate stronger feelings of anger than pre-election manipulation of ballot access [@Szakonyi2021], and access to information about manipulation appears to reduce support for the ruling party [@Reuter2021], increase support for protest and reduce the perceived legitimacy of the regime [@Williamson2021]. This argument has found support in studies of the relationship between economic grievances, manipulated elections, and protest [@Rod2019;@Brancati2016]. A study of individuals in Nigeria found that individuals' subjective perceptions of fraud makes them more likely to participate in protest, not more objective measures [@Daxecker2019b], which suggests that emotions, moral condemnation, or grievances take precedence over strategic calculations for individuals. Subjective belief in fraud was also shown to be correlated with approval of mass protests after Russia's 2011 election [@Chaisty2013]. Furthermore, simply being on the losing side in an election is associated with reduced belief that the election was fair [@Cantu2015], and with increased support for electoral protest [@Anderson2006]. 
+
+
+The strategic and social-psychological explanations are, of course, interconnected. As Schedler writes, "Grievances provide moral justifications for collective protest: we need to do something. Opportunities provide strategic justifications: we can achieve something" [@Schedler2013,p.304]. Several empirical studies have, accordingly, found links between election manipulation and binary measures of protest [@Brancati2016;@Hyde2014a;@Harvey2020;@Rod2019]. 
+
+
+
+The literature thus expects that manipulated elections increase the risk of protest by 1) revealing regime weakness, especially when the margin of victory is low, and 2) exacerbating existing grievances and upsetting citizens' sense of procedural fairness. In turn, governments should be reluctant to manipulate. However, as discussed below, electoral protest is relatively rare, and even in cases where it does occur, most efforts to overturn fraudulent election results through protest have failed [@kalandadze2009electoral]. The apparent failure of protest risk to deter election fraud underlines our limited understanding of non-democratic ruling parties' decision-making. Does the extent of fraud, in fact, make more numerous (and thus more costly) protest more likely? 
+
+
+# Theory
+
+With some exceptions, such as the study by Lankina and Skovoroda [-@Lankina2017], most research on election fraud and protest treats the latter as a binary outcome. The foregoing discussion of the literature suggests several baseline hypotheses to be tested regarding post-election protest as a binary variable. These include, first, the prediction that more severe election fraud is a signal of deeper regime weakness (i.e. unpopularity), which makes protest more likely. Second, there is the alternative view that election manipulation is most likely to spark a protest movement when margins of victory are narrow [@Simpser2011]. Finally, the grievances approach suggests that fraud will most likely lead to protest when social grievances are high [@Brancati2016;@tucker2007]. 
+
+>H1: Post-election protest will be more likely to occur when fraud is severe.
+
+>H2: More sever election fraud is associated with a higher likelihood of protest when winning-party vote-share is low.
+
+>H3: Post-election protest will be more likely to occur when fraud is severe and economic and social grievances are elevated.
+
+However, these predictions may not apply to the size or intensity of a protest wave. Once protests begin, the extent of electoral fraud is unlikely to affect their scope. The initial emergence of protest triggers a response by the government and ruling party that can take the form of repression, concessions, or toleration [@tillyMobilizationRevolution1978;@lipskyProtest1968;@Hummel2019;@raslerConcessionsRepression1996;@Bishara2015;@Frantz2014]. Given that post-electoral protests are a direct challenge to the regime, toleration is unlikely in these cases. That election dates are known in advance creates opportunities for opposition mobilization; anticipating this, regimes can more easily engage in pre-emptive repression [@Truex2019;@Sullivan2016;@Bhasin2013]. Because the emergence of protest indicates that the regime's pre-emptive efforts have failed, it is not clear a priori how the regime should handle protesters it failed to deter [@Ritter2016]. In many cases, the government doubles down on repression, calling upon the security services to disperse protests, arrest leaders, and perhaps employ harsher methods including disappearance, torture, and execution [@Escriba_Folch2013;@Davenport2007]. Though such crackdowns risk provoking a backlash, they are aimed at demobilizing the opposition by increasing the costs of participation in overt dissent [@DeVogel2022]. In other cases, the government may attempt to accommodate the opposition, by making concessions on policy or institutions [@Moore2000;@Hafner-Burton2016;@Piven1979]. Alternatively, concessions may be aimed at the more moderate public, in order to keep them on the sidelines of the conflict [@Hummel2019].
+
+
+What results is a test of strength between the anti-incumbent protest coalition and the regime with its supporters [@mcadamDynamicsContention2001;@tillyRegimesRepertoires2010]. In essence, as Beaulieu [@Beaulieu2014a] notes, the onset of electoral protest marks a case of bargaining failure. Just as in the international context, the ensuing conflict acts to reveal information on the strength and resolve of the two sides.  In such a contest, the incumbent enjoys multiple advantages, though it may lack the support of a majority of the population. It controls the resources of the state, and can call upon the support of those elites who benefit from the status quo. High-capacity states, as a result, are more likely to be able to engage in successful repression [@tarrowPowerMovementSocial2011]. Though a biased election may temporarily allow diverse opposition groups to set aide their differences [@trejo_ballot_2014], this internal diversity can enable the incumbent to divide the opposition with selective repression or concessions. While the regime may have its own splits---between reformists and hardliners, for example---the emergence of protest can act to solidify support for the ruling party among its supporters.
+
+In this struggle between the potential protest coalition and the incumbent government, protesters and their possible allies behave as "passionate economists" [@VanZomeren2012]---they are motivated both by emotional responses to grievance, and by a more rational calculation of individual-level risk and group-level efficacy. What is the likelihood that protest action can help resolve the grievance, and does the benefit of participating outweigh the risk of personal consequences to the individual for participating?  A fraudulent election may heighten citizens' grievances and generate uncertainty around the underlying popularity of the regime, creating a moment of elevated protest risk. Crucially, though, this evaluation is dynamic and can be updated over time in response to new information and new events [@VanZomeren2012]. If protest movements have sufficient numbers and organizational resources to put the regime on the back foot, this can lead to more numerous protests as individuals' sense of group efficacy grows and their sense of risk declines [@Chenoweth_Stephan2011]. On the other hand, if the regime is well-resourced, capable, and unified, its actions to end a protest movement (including repression, concessions, and co-optation) can lead to a negative re-evaluation of the movement's odds of success. This does not, of course, eliminate citizens' sense of grievance. Instead, it leads them to abandon 'approach-oriented' forms of coping, to avoidance-oriented forms: demobilization and disengagement [@van_zomeren_put_2004;@Young2019]. For example, while ruling-party supporters in Russia disapprove of election fraud [@Reuter2021], they are more likely to withdraw from politics after exposure to electoral protest than to support the opposition [@Tertytchnaya2020].
+
+In summary, though election fraud may be taken as a signal by opposition groups, it is a noisy one: weak and strong governments alike may engage in election manipulation. However, once a protest movement begins, the level of election manipulation is no longer a useful signal of incumbent strength. Instead, protesters and bystanders can update their estimation of the relative strength of the protest coalition and the incumbent government by observing the size of crowds, the number of protests, and the government's reaction. Since the level of manipulation will no longer serve as an important indicator of regime strength once a challenge is taken to the streets, the number of protests will instead be related to other indicators of opposition and incumbent capacity. As identified in prior research, these factors include the previous repressive history of the government [@Davenport2019], the institutionalization of opposition parties [@trejo_ballot_2014], the margin of victory in the election [@simpser2013], and whether or not the chief executive faces term limits [@hale_patronal_2014]. Generally speaking, these structural variables indicate aspects of the political opportunity structure that make protest more likely to occur [@meyer_protest_2004].
+
+>H4: Once protests begin, the severity of election fraud will not be correlated with the number of protest events.
+
+
+
+
+<!-- -Democracy leads to less repression: Bueno de Mesquita et al., 2005). Davenport & Armstrong (2004),  -->
+<!-- -Prior repression makes repression more likely (Davenport 2007 (Tyrannical peace)) -->
+<!-- -Resource wealth makes authoritarian survival more likely (Girod et al 2016) -->
+
+
+<!-- From E-F 2013: Nevertheless, violent repression may have pernicious consequences, since it may bring about a -->
+<!-- violent escalation or a radicalization of positions, thereby unleashing a violent response from some -->
+<!-- groups and even potentially provoking a coup (Gurr, 1970; Ortiz, 2007; Pierskalla, 2010). Thus, -->
+<!-- Opp and Ruehl (1990) suggest that repression may lead to micro-mobilization processes leading to -->
+<!-- further protest activities and unrest. Likewise, Ginkel and Smith suggest that ‘dissident activity is -->
+<!-- more likely to be effective in motivating rebellious action under highly repressive conditions’ -->
+<!-- (1999: 292). Some argue that when nonviolent actions are violently repressed, protesters may turn -->
+<!-- to violent activities (Lichbach, 1987; Moore, 1998), as the Syrian case illustrates. Similarly, -->
+<!-- Goodwin (2001) argues that revolutions are more likely in patrimonial and very repressive states. -->
+<!-- For instance, in Iran on Black Friday in September 1978, the regime’s security forces killed hun- -->
+<!-- dreds of anti-shah protesters in Tehran. After a brief decrease in activity, public dissent and strikes -->
+<!-- quickly resumed and escalated. The mobilizations that took place in December gathered hundreds -->
+<!-- of thousands of people calling for the shah’s rule to end. In January 1979, the shah left the -->
+<!-- country -->
+
+<!-- ...restrictions on civil rights can thwart the ability of some -->
+<!-- actors (especially the opposition) to organize, coordinate, and mobilize in the short run -->
+
+
+
+
+<!-- On uncertainty of repression and protest, from Girod et al: Yet the differences in demobilization of protest movements following repression remain largely unexplained. Government repression of protesters is strongly associated with quelling protest activity in some cases (Lyall, 2009; Schatzman, 2005), and triggering increased mass mobilization in others (Francisco, 1995; Khawaja, 1993; Mason and Krane, 1989). Complicating matters further, in some cases the relationship between repression and protest appears to change over time (Francisco, 1995; Inclan, 2009; Mason and Krane, 1989; Rasler, 1996; Tsebelis and Sprague, 1989), across levels of repression (DeNardo, 1985; Levitsky and Way, 2010; Muller and Weede, 1990), and based on the complex ways in which “threat” and “opportunity” combine to influence protest dynamics (Goldstone and Tilly, 2001). Because fine-grained global data on repression of mass movements have not been available until now (Davenport, 2005: viii; 2007a: 10), extant studies depend largely on only a few cases. In short, the literature has yet to identify cross-national patterns to explain when publics in an authoritarian regime respond to repression with greater collective action vs. disbanding. -->
+
+
+
+ <!-- Chernykh and Svolik, in particular, argue that by revealing information about manipulation, even moderately independent courts can increase the risk of protest against manipulated elections (thus deterring manipulation), while also reducing the risk that opposition groups mistakenly protest clean elections. This result is in keeping with the argument that electoral protests are the outcome of bargaining failure among incumbents and opposition groups, which are worsened in low-information environments [@Beaulieu2014a]. -->
+
+<!-- However, one of the central functions of independent judiciaries outside of liberal democracies is to create mechanisms through which citizens grievances can be addressed [@Whiting2017; @Solomon2007; @Hilbink2007d]. Relatively impartial courts create an opportunity for citizens to resolve grievances against the state and against other individuals who may be more powerful or influential. For example, survey-experimental data show that citizens of several Middle Eastern non-democracies were more willing to engage in legal action to address their grievances when they believe courts are more independent and assertive [@Schaaf2021]. Moreover, the belief that procedures are generally followed impartially can bolster the state's claim to legitimacy [@Gerschewski2013], increasing citizens' trust in authority and willingness to abide by political outcomes [@Grimes2006]. Evidence from European democracies suggests that that de facto independence is key for such judgments [@Buhlmann2011]. Taken together, greater de facto judicial independence ought to reduce protest risk, both by creating a channel for the state to address citizens' general grievances and by offering an alternative venue to the street for addressing specific electoral concerns.  -->
+
+<!-- These two functions for courts are at odds with regard to electoral disputes. As a result, the relationship between judicial independence and post-election protest is conceptually and empirically muddled---despite the centrality of protest risk to predominant models of electoral manipulation. The formal model proposed by Chernykh and Svolik [-@Chernykh2015] is not tested empirically, while Chernykh [-@chernykh2014] and Eisenstadt [-@eisenstadt_courting_2003] both find no effect for judicial independence on the likelihood of protest in post-communist Europe and Mexico, respectively. This calls into question the prediction that more independent courts make protest more likely in the presence of election manipulation, though to my knowledge the question has not been studied in a large-n cross-national context. -->
+
+
+
+
+
+ 
+# Data and methods
+
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(countrycode)
+library(readxl)
+library(vdemdata)
+library(lme4)
+library(interplot)
+library(lubridate)
+library(summarytools)
+library(stargazer)
+library(cowplot)
+library(pscl)
+library(modelsummary)
+library(ggeffects)
+library(MASS)
+
+nelda3.sub <- read.csv(here::here("Data", "nelda3_sub.csv"))
+
+
+nelda3.sub <- nelda3.sub %>% mutate(legit_no_proc = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol))
+nelda3.sub <- nelda3.sub %>% mutate(legit_total = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol + v2exl_legitratio))
+
+
+
+##Naming nelda variables
+
+nelda3.sub <- nelda3.sub %>% rename(boycott = nelda14)
+nelda3.sub <- nelda3.sub %>% mutate(boycott = ifelse(boycott == "yes", 1, ifelse(boycott == "no", 0,
+                                                                                 NA)))
+
+##Creating economic crisis variable
+
+nelda3.sub <- nelda3.sub %>% mutate(econ.crisis = ifelse(is.na(e_miinflat) == T | is.na(gdpgro.1lag) == T, NA, ifelse(e_miinflat > 15 | gdpgro.1lag <= -0.012, 1, 0)))
+nelda3.sub <- nelda3.sub %>% mutate(econ.crisis = as.factor(econ.crisis))
+
+nelda3.sub <- nelda3.sub %>% mutate(gdp.crisis = ifelse(is.na(gdpgro.1lag) == T, NA, ifelse(gdpgro.1lag <= -0.012, 1, 0)))
+nelda3.sub <- nelda3.sub %>% mutate(inflat.crisis = ifelse(is.na(e_miinflat) == T, NA, ifelse(e_miinflat > 15, 1, 0)))
+
+nelda3.sub <- nelda3.sub %>% mutate(grievance.index = ifelse(is.na(e_migdppcln) == T, NA, e_migdppcln*v2xeg_eqdr))
+
+##Removing cases before 1990, when ECAV starts
+nelda3.sub <- nelda3.sub %>% filter(year >= 1990)
+
+## Removing cases where inc. loses
+nelda3.sub <- nelda3.sub %>% filter(inc.lose == 0)
+
+##Intmon as a factor
+nelda3.sub <- nelda3.sub %>% mutate(v2elintmon = as.factor(v2elintmon))
+
+
+nelda3.sub <- nelda3.sub %>% mutate(electoral.dem = ifelse(v2x_regime == 2, 1, 0))
+
+#Square of physint
+
+nelda3.sub <- nelda3.sub %>% mutate(physintlag.sq = physinteg.1lag^2)
+
+
+#Crisis as factor
+
+nelda3.sub <- nelda3.sub %>% mutate(econ.crisis.nelda.1lag = factor(econ.crisis.nelda.1lag))
+
+#Margins with updates
+
+nelda3.sub <- nelda3.sub %>% mutate(winner.share.upd = ifelse(types == "Executive", v2elvotlrg_amend/100, v2ellovtlg_amend/100))
+
+#Successful protest = new elections or new incumbent
+
+nelda3.sub <- nelda3.sub %>% mutate(protest.success = ifelse(inc.replaced.prot == 1 | elections.cancel.prot, 1, 0))
+
+#Protest cases only
+
+protest.cases <- nelda3.sub %>% filter(any.ecav.protest == 1)
+
+
+# Replacing NA with 0 for term limits variable in known parliamentary countries in legislative elections
+
+nelda3.sub <- nelda3.sub %>% mutate(inc.termlimit.num = ifelse(is.na(inc.termlimit.num) == T & v2ex_elechog == 0, 0, inc.termlimit.num))
+
+## Changing participants from numeric category to text
+nelda3.sub <- nelda3.sub %>% mutate(median.participants = round(median.participants))
+nelda3.sub <- nelda3.sub %>% mutate(particpants_categorical = ifelse(is.na(median.participants)==T, NA, ifelse(median.participants == 1, "Less than 10",
+                     ifelse(2, "10 to 99", ifelse(3, "100 to 999",
+                                                  ifelse(4, "1000 to 9,999", ifelse(5, "Greater than 10,000", NA)))))))
+nelda3.sub <- nelda3.sub %>% mutate(particpants_categorical = as.factor(particpants_categorical))
+
+## Median particiants (MM) as factor
+
+nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.post = as.factor(median.participants.mm.post))
+
+## Inverting the vote buying measure so it is not reverse coded
+
+nelda3.sub <- nelda3.sub %>% mutate(v2elvotbuy_inv = -1*v2elvotbuy)
+
+
+```
+
+
+These hypotheses are tested using data from three datasets: NELDA [@hyde2012], V-Dem version 11.1 [@vdem11.1], and the Electoral Contention and Violence (ECAV) dataset [@Daxecker2019]. The unit of observation for this study is an election period as recorded in NELDA. This framework prevents selecting on the dependent variable, by capturing both protested and non-protested elections. NELDA also includes a variable indicating elections in which incumbents lost; as this study is focused on protest against ostensibly victorious incumbents, I use this variable to filter out elections which the opposition won outright. I further limit the sample to regimes coded as electoral autocracies or electoral democracies in V-Dem. This excludes closed autocracies (where no national elections are held) and liberal democracies (where electoral integrity and rule of law are both high). Finally, the date range is limited by the availability of data on protest from ECAV, as discussed below, which runs from 1990 to 2012. The resulting dataset includes 647 election-period observations across 109 countries.
+
+ECAV, from which study's dependent variable is drawn, records protests and other contentious actions from six months before to three months after an election. For this study, I include protests only, excluding acts like shootings, bombings, and coups. ECAV data is in event-day format. To capture the *number of protests*, I take the sum number of events recorded in ECAV from election day to the end of the dataset's coverage period ninety days later. The result is a count variable ranging from zero to 90.\footnote{That the max value for the quantity of protests matches the number of days in the recording window is coincidental.} The large majority of elections experience no post-election protest: in 460 of the 647 elections, no protests are recorded. Figure 1 reports the distribution of protest counts across the dataset, as well as winners' vote-shares.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+ggplot(nelda3.sub, aes(x=n.events.massmob.post)) + geom_histogram(bins = 90) + xlab("Number of protest events") + theme_bw()
+
+
+ggplot(nelda3.sub, aes(x=winner.share.upd)) + geom_histogram(bins=100) + xlab("Incumbent vote-share") + theme_bw()
+```
+
+```{r, include=FALSE}
+
+
+p.success <- ggplot(nelda3.sub, aes(x=as.numeric(median.participants.mm.post), fill = as.factor(protest.success), color=as.factor(protest.success)))+
+  geom_histogram(position="identity", alpha=0.5, binwidth = 1) 
+p.success + coord_cartesian(ylim = c(0, 100))
+```
+
+
+```{r, include=FALSE}
+mu <- plyr::ddply(nelda3.sub, "protest.success", summarise, grp.mean=mean(n.events.massmob.post))
+head(mu)
+
+p.success <- ggplot(nelda3.sub, aes(x=n.events.massmob.post, fill = as.factor(protest.success), color=as.factor(protest.success)))+
+  geom_histogram(position="identity", alpha=0.5, binwidth = 1) + 
+  geom_vline(data=mu, aes(xintercept=grp.mean, color=as.factor(protest.success)),
+             linetype="dashed")
+p.success
+```
+
+
+```{r}
+incl.vars <- nelda3.sub %>% dplyr::select(jucon.1lag, legcon.1lag, altinf.1lag, gdpgro.1lag, osorg.1lag, pubseccorrup.lag, econ.crisis.nelda.1lag, natlpartyorg.lag,  pubseccorrup.lag,  pubseccorrup.lag, v2elirreg.inv, presidential, inc.termlimit.num, physinteg.1lag, urban.pct, rentierstate, taxstate, winner.share.upd, harass_opp, any.ecav.protest, median.participants.mm.pre, median.participants.mm.post)
+#incl.vars <- incl.vars %>% mutate(v2elintmon = as.numeric(v2elintmon))
+
+datasummary_skim(incl.vars)
+```
+
+
+This distribution is in line with the theoretical proposition that two data-generating processes are at work: the factors that lead to the occurrence of protest may not be the same as those that sustain or intensify it. Consequently, I model the results in two ways. The first approach uses logit models to identify the factors that make *any protest* more likely to occur---this is a binary variable that is coded as 1 if any protest occurred after the election. Since election-year observations are nested within countries here, I use multilevel models with random intercepts by country in. In the second analysis, I use negative binomial regressions to model the count of protests given that protest has begun. That is, these latter models exclude cases where no protest occurred. For ease of interpretation, these processes are modeled and depicted separately in the main text, while hurdle regression models (which use the full dataset in one stage) are presented in the appendix, with similar results. 
+
+Each model includes the explanatory variables proposed above. First, three proxy measures of economic grievance include an indicator of *public sector corruption* and the *lagged GDP growth rate*, both taken from V-Dem, and a binary measure of *economic crisis* from the NELDA dataset. Higher levels of corruption, negative GDP growth rates, and a positive value for *economic crisis* should each be expected to increase citizens' sense of grievance. To capture the *severity of election fraud*, I use the V-Dem measure of intentional election irregularities, a category which includes "double IDs, intentional lack of voting materials, ballot-stuffing, misreporting of votes, and false collation of votes." I operationalize electoral manipulation using this variable, rather than aggregate measures of election integrity, because fraud of this kind is thought to be most likely to trigger protest [@Linebarger2020]---it is often incumbents' tool of last resort [@Sjoberg2016], it can fail to signal strength [@Harvey2020], and it can be more damaging to legitimacy than pre-election manipulation [@birch2011;@Szakonyi2021]. This measure of election integrity should thus pose a strong test of the protest-oriented model. Finally, the winning party's *vote-share* is also taken from the V-Dem dataset.
+
+Several control variables are included, which could be common causes for both the severity of election manipulation and protest. To help control for the underlying mobilizational capacity, which likely affects incumbents' decision to manipulate and the latent risk of protest, I include lagged indicators of government *control over civil society* (the 'v2cseeorgs' variable from V-Dem) and the proportion of national political parties with *permanent party organizations* (V-Dem's 'v2psorgs'). Likewise, the ability of the state to engage in repression is likely to embolden the ruling party and deter protests; I thus control for *physical integrity* using the 'physical violence index' from V-Dem lagged one year. Higher values for this variable indicate greater freedom from torture and political killing. Since intense repression may itself become a grievance that triggers further protest, I also include the variable's square term. 
+
+Next, all models include three measures of the degree of political openness in the country. The first of these is an indicator variable for *electoral democracy*; the reference category is electoral autocracy. The second and third are *judicial constraints* and  *legislative constraints* on the executive, V-Dem variables which captures the extent to which the judicial and legislative bodies in the country act independently in practice to limit executive power. Since urban areas can make electoral manipulation more difficult [@ziblatt2009;@larreguy2016parties] while also making protest more likely [@Wallace2013a], I also include data on *urbanization* taken from the United Nations [@DepartmentofEconomicandSocialAffairsPopulationDivision2019].
+
+Finally, several binary control variables are included. First, a variable from NELDA is used to indicate *presidential* elections, since these may include both higher levels of manipulation [@Simpser2011] and a greater risk of protest. Next, a variable from NELDA indicates if the chief executive is *term limited* during the election at hand. This variable is included since incumbents running up against constitutional term limits can pose major challenges for the unity of the regime, possibly leading to fractured manipulation efforts and post-election protest [@hale_patronal_2014]. Finally, I include dummy variables that provide a categorical evalution of state capacity. These are taken from the ordinal version of the V-Dem variable "state source of fiscal revenue" (v2stfisccap). If the V-Dem data codes a state as not capable of raising revenue or primarily relying on loans and foreign aid, I code it as a *weak state*. If the state is described as primarily relying on resource rents and expropriation, I code it is a *rentier state*. Finally, states that rely primarily on taxes on property or economic transactions are coded as *tax states*. This distinction is relevant since access to natural resource rents may both make protest less likely and repression more effective [@Girod2018]. Figure 2 shows summary statistics for all of these variables.
+
+
+
+
