@@ -8,7 +8,6 @@ output: html_notebook
 library(tidyverse)
 library(countrycode)
 library(readxl)
-library(vdemdata)
 library(lme4)
 library(interplot)
 library(lubridate)
@@ -22,14 +21,15 @@ Note: check on how massmob data merges with nelda. We want cases where this is n
 ```{r}
 nelda <- read_xls(here::here("Data", "NELDA.xls"))
 ecav <- read_xls(here::here("Data", "ECAV datatset_Version 1.2.xls"))
-vdem.data <- vdem #At the time of coding, this was v. 11.1
+vdem.data <- read_rds("C:/Users/colharv/Documents/Research projects/Country_Year_V-Dem_Full_others_R_v11.1/Country_Year_V-Dem_Full+others_R_v11.1/V-Dem-CY-Full+Others-v11.1.rds") #Switch between these two for work desktop vs. laptop
+#vdem.data <- vdem
 lji <- read.csv(here::here("Data", "LJI-estimates-20140422.csv"))
 massmob <- read.csv(here::here("Data", "mmALL_073119_csv.csv"))
 ```
 
 Cleaning nelda variables--this will have to be done for all used variables
 ```{r}
-nelda <- nelda %>% rename(first.mp.election = nelda2)
+nelda <- nelda %>% dplyr::rename(first.mp.election = nelda2)
 nelda <- nelda %>% rename(protests = nelda29)
 nelda <- nelda %>% rename(inc.fav.cancel = nelda34)
 nelda <- nelda %>% rename(inc.lose = nelda24)
@@ -94,11 +94,11 @@ Adding a vdem ID to the other packages
 Note: the missing values from NELDA are cases not included in VDEM (e.g. Bahamas, Dominica.)
 ```{r}
 nelda <- nelda %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "gwn", destination = "vdem"))
-
+ #Missing matches here look to be countries below the population threshold: some Carib. islands, Monaco, etc.
 lji <- lji %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", 
                                                destination = "vdem"))
 massmob <- massmob %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "p4n", 
-                                               destination = "vdem"))
+                                               destination = "vdem")) #Missing here tend to be communist states that no longer exist
 
 nelda <- nelda %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 lji <- lji %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
@@ -333,9 +333,9 @@ nelda2 <- nelda2 %>% mutate(taxstate = ifelse(is.na(v2stfisccap_ord) == T, NA, i
 
 #nelda3 <- nelda2 %>% merge(massmob, by = "country_id_year")
 
-nelda3 <- nelda %>% dplyr::select(ccode, country, year, electionid, election_mdy)
+nelda3 <- nelda %>% dplyr::select(ccode, country, country_id, year, electionid, election_mdy)
 nelda3 <- nelda3 %>% mutate(election_year = year)
-nelda3 <- massmob %>% left_join(nelda3, by = c("ccode", "year"))
+nelda3 <- massmob %>% left_join(nelda3, by = c("country_id", "year"))
 ```
 
 
@@ -474,18 +474,37 @@ nelda2.sub <- nelda2.sub %>% left_join(test, by = c("stateid", "year"))
 ```
 
 
+Excluding protest events in MM that take place more than 180 days before an election (events_pre) or more than 90 days after an election (events_post)
+
+```{r}
+elections_db <- nelda %>% dplyr::select(country_id, election_mdy) # A second dataframe with election dates by country
+
+nelda3.sub <- slice(nelda3, 0)
+
+for (i in 1:nrow(nelda3)) {
+  country_id_temp <- nelda3$country_id[i]
+  elections_db_temp <- elections_db %>% filter(country_id == country_id_temp)
+  protest_event_slice <- nelda3[i,]
+  for (j in 1:nrow(elections_db_temp)) {
+    elections_db_temp <- elections_db_temp %>% mutate(days_to_election_all =  election_mdy - protest_event_slice$protest_mdy)
+    #Negative numbers mean the protest is after the election, positive numbers mean the protest is before the election
+    elections_db_temp <- elections_db_temp %>% mutate(days_to_election_all_num = as.numeric(days_to_election_all))
+    elections_db_temp <- elections_db_temp %>% filter(days_to_election_all_num <= 180 & days_to_election_all_num >= -90)
+  }
+}
+```
 
 
 Cutting out protests before elections for nelda 3, 
 ```{r}
 #Add electionid to the year before the election and year after (so that grouping variable can capture those protests if needed)
-nelda3 <- nelda3 %>% group_by(ccode) %>% mutate(election_date_upcoming = as_date(ifelse(is.na(election_year)==F, election_mdy, 
+nelda3 <- nelda3 %>% group_by(country_id) %>% mutate(election_date_upcoming = as_date(ifelse(is.na(election_year)==F, election_mdy, 
                                                   ifelse(is.na(election_year)==T & is.na(lead(election_mdy))==F,
                                                                           lead(election_mdy), NA))))
 
 
 
-nelda3 <- nelda3 %>% group_by(ccode) %>% mutate(election_date_lagged = as_date(ifelse(is.na(election_year)==F, election_mdy,                                                         ifelse(is.na(election_year)==T & is.na(lag(election_mdy))==F, lag(election_mdy), NA))))
+nelda3 <- nelda3 %>% group_by(country_id) %>% mutate(election_date_lagged = as_date(ifelse(is.na(election_year)==F, election_mdy,                                                         ifelse(is.na(election_year)==T & is.na(lag(election_mdy))==F, lag(election_mdy), NA))))
 
 ## Now filter by date of protest
 
