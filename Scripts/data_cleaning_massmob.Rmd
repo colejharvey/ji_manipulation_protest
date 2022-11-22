@@ -1,0 +1,639 @@
+---
+title: "Data cleaning for mass mobiliziation data version"
+output: html_notebook
+---
+
+```{r setup}
+library(tidyverse)
+library(countrycode)
+library(readxl)
+library(lme4)
+library(interplot)
+library(lubridate)
+library(summarytools)
+```
+
+Loading data
+
+Note: check on how massmob data merges with nelda. We want cases where this is no protest after the election to score as 0.
+
+```{r}
+nelda <- read_xls(here::here("Data", "NELDA.xls"))
+#ecav <- read_xls(here::here("Data", "ECAV datatset_Version 1.2.xls"))
+#vdem.data <- read_rds("C:/Users/colharv/Documents/Research projects/Country_Year_V-Dem_Full_others_R_v11.1/Country_Year_V-Dem_Full+others_R_v11.1/V-Dem-CY-Full+Others-v11.1.rds") #Switch between these two for work desktop vs. laptop
+vdem.data <- vdemdata::vdem
+lji <- read.csv(here::here("Data", "LJI-estimates-20140422.csv"))
+massmob <- read.csv(here::here("Data", "mmALL_073119_csv.csv"))
+```
+
+
+Cleaning nelda variables--this will have to be done for all used variables
+```{r}
+nelda <- nelda %>% dplyr::rename(first.mp.election = nelda2)
+nelda <- nelda %>% rename(protests = nelda9)
+nelda <- nelda %>% rename(inc.fav.cancel = nelda34)
+nelda <- nelda %>% rename(inc.lose = nelda24)
+nelda <- nelda %>% rename(inc.termlimit = nelda8)
+nelda <- nelda %>% rename(econ.crisis.nelda = nelda18)
+nelda <- nelda %>% rename(opp.votegain = nelda7)
+nelda <- nelda %>% rename(nelda.protests.fraud = nelda30)
+nelda <- nelda %>% rename(new.elections.held = nelda37)
+nelda <- nelda %>% rename(inc.replaced.prot = nelda41)
+nelda <- nelda %>% rename(preelection_concerns = nelda11)
+nelda <- nelda %>% rename(harass_opp = nelda15)
+nelda <- nelda %>% rename(opp_leaders_prevented = nelda13)
+
+
+
+nelda <- nelda %>% mutate(elections.cancel.prot = ifelse(is.na(new.elections.held)==T, NA, ifelse(nelda35 == "yes" & new.elections.held == "yes", 1, 0)))
+nelda <- nelda %>% mutate(first.mp.election = ifelse(first.mp.election == "yes", 1, ifelse(first.mp.election == "no", 0, NA)))
+nelda <- nelda %>% mutate(protests = ifelse(protests == "yes", 1, ifelse(protests == "no", 0, NA)))
+nelda <- nelda %>% mutate(inc.fav.cancel = ifelse(inc.fav.cancel == "yes", 1, ifelse(inc.fav.cancel == "no", 0, NA)))
+nelda <- nelda %>% mutate(inc.fav.cancel.protests = ifelse(nelda35 == "yes", 1, 0))
+nelda <- nelda %>% mutate(opp.fav.cancel = ifelse(nelda32 == "yes", 1, 0))
+nelda <- nelda %>% mutate(inc.lose = ifelse(inc.lose == "yes", 1, ifelse(inc.lose == "no", 0, NA)))
+
+nelda <- nelda %>% mutate(inc.termlimit.num = ifelse(types == "Legislative/Parliamentary" & inc.termlimit == "N/A", 0, ifelse(types == "Executive" & inc.termlimit == "yes", 1,                                                                                                                       ifelse(types == "Executive" & inc.termlimit == "no", 0, NA))))
+nelda <- nelda %>% mutate(preelection_concerns = ifelse(preelection_concerns == "yes", 1, ifelse(preelection_concerns == "no", 0, NA)))
+nelda <- nelda %>% mutate(harass_opp = ifelse(nelda3 == "No", 1, ifelse(harass_opp == "yes", 1, ifelse(harass_opp == "no", 0, NA))))
+nelda <- nelda %>% mutate(opp_leaders_prevented = ifelse(nelda3 == "No", "In general", ifelse(opp_leaders_prevented == "yes", "Specifically", ifelse(opp_leaders_prevented == "no", "No", NA))))
+
+                          
+                          
+          
+
+nelda <- nelda %>% mutate(econ.crisis.nelda = ifelse(econ.crisis.nelda == "yes", 1, ifelse(econ.crisis.nelda == "no", 0, NA)))
+nelda <- nelda %>% mutate(opp.votegain = ifelse(opp.votegain == "yes", 1, ifelse(opp.votegain == "no", 0, NA)))
+nelda <- nelda %>% mutate(nelda.protests.fraud = ifelse(protests == 0, 0, ifelse(nelda.protests.fraud == "yes", 1, ifelse(nelda.protests.fraud == "no", 0, NA))))
+nelda <- nelda %>% mutate(inc.replaced.prot = ifelse(inc.replaced.prot == "yes", 1, 0))
+nelda <- nelda %>% mutate(new.elections.held = ifelse(new.elections.held == "yes", 1, 0))
+
+
+
+
+
+```
+
+
+
+Adding a vdem ID to the other packages
+
+Note: the missing values from NELDA are cases not included in VDEM (e.g. Bahamas, Dominica.)
+```{r}
+nelda <- nelda %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "gwn", destination = "vdem"))
+ #Missing matches here look to be countries below the population threshold: some Carib. islands, Monaco, etc.
+lji <- lji %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", 
+                                               destination = "vdem"))
+massmob <- massmob %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "p4n", 
+                                               destination = "vdem")) #Missing here tend to be communist states that no longer exist
+
+nelda <- nelda %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+lji <- lji %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+vdem.data <- vdem.data %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+massmob <- massmob %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+
+```
+
+
+```{r}
+vdem.recent <- vdem.data %>% filter(year >= 1944)
+
+vdem.recent <- vdem.recent %>% mutate(elcompindex.m = ifelse(v2xel_frefair == 0, 0, v2x_mpi / v2xel_frefair))
+vdem.recent$v2elirreg.inv <- vdem.recent$v2elirreg * -1
+
+vdem.recent$reform_positive <- NA
+vdem.recent$reform_positive[vdem.recent$v2jureform_ord <= 1] <- 0
+vdem.recent$reform_positive[vdem.recent$v2jureform_ord == 2 ] <- 1
+
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(v2elintmon.lag = lag(v2elintmon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(reform_positive.lag = lag(reform_positive))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(v2elirreg.inv.lag = lag(v2elirreg.inv))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(elcompindex.m.1lag = lag(elcompindex.m))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(polyarchy.1lag = lag(v2x_polyarchy))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(libdem.1lag = lag(v2x_libdem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partipdem.1lag = lag(v2x_partipdem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(delibdem.1lag = lag(v2x_delibdem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(egaldem.1lag = lag(v2x_egaldem))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(altinf.1lag = lag(v2x_freexp_altinf))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(api.1lag = lag(v2x_api))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(mpi.1lag = lag(v2x_mpi))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(frassoc.1lag = lag(v2x_frassoc_thick))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(suffr.1lag = lag(v2x_suffr))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(frefair.1lag = lag(v2xel_frefair))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(elecoff.1lag = lag(v2x_elecoff))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(liberal.1lag = lag(v2x_liberal))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jucon.1lag = lag(v2x_jucon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partip.1lag = lag(v2x_partip))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(cspart.1lag = lag(v2x_cspart))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(eqdr.1lag = lag(v2xeg_eqdr))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(oppaut.1lag = lag(v2psoppaut))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jureform.1lag = lag(v2jureform))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jupurge.1lag = lag(v2jupurge))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jupoatck.1lag = lag(v2jupoatck))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jupack.1lag = lag(v2jupack))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(juaccnt.1lag = lag(v2juaccnt))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(juhcind.1lag = lag(v2juhcind))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(juncind.1lag = lag(v2juncind))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(mecenefm.1lag = lag(v2mecenefm))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(gdppcln.1lag = lag(e_migdppcln))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(gdpgro.1lag = lag(e_migdpgro))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(inflat.1lag = lag(e_miinflat))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcon.1lag = lag(v2xlg_legcon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(physinteg.1lag = lag(v2x_clphy))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcorrupt.lag = lag(v3lgcrrpt))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(exbribe.lag = lag(v2exbribe))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(exembez.lag = lag(v2exembez))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(pubseccorrup.lag = lag(v2excrptps))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partybarriers.lag = lag(v2psbars))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(natlpartyorg.lag = lag(v2psorgs))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(partybranch.lag = lag(v2psprbrch))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(csrepress.1lag = lag(v2csreprss))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(osorg.1lag = lag(v2cseeorgs))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(civlib.1lag = lag(v2x_clpol))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jucon.1lag = lag(v2x_jucon))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcon.1lag = lag(v2xlg_legcon))
+
+
+
+
+
+
+vdem.recent <- vdem.recent %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
+
+
+##Leading variables for protest after election years
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(prodem.protest.1lead = lead(v2cademmob))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(proauth.protest.1lead = lead(v2caautmob))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(protest.scale.1lead = lead(v2cagenmob))
+vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(concen.protest.1lead = lead(v2caconmob))
+
+
+```
+Subtracting election integrity variable from additive polyarchy index and judicial constraints from liberal component index
+```{r}
+vdem.recent <- vdem.recent %>% mutate(polyarchy_no_ei = v2x_api - (.25*v2xel_frefair))
+
+vdem.recent <- vdem.recent %>% mutate(liberal_no_jucon = (v2xcl_rol + v2xlg_legcon)/2)
+```
+
+
+Imporant variables to include but not lag: v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm
+
+
+```{r}
+lji <- lji %>% group_by(ccode) %>% mutate(lji.lag = lag(LJI))
+```
+
+Cleaning nelda date variable and massmob date
+```{r}
+nelda <- nelda %>% mutate(mmdd = ifelse(mmdd < 1000, paste0(0, mmdd), mmdd))
+
+nelda <- nelda %>% mutate(election_mdy = paste0(mmdd, year))
+nelda <- nelda %>% mutate(election_mdy = mdy(election_mdy))
+
+massmob <- massmob %>% mutate(startday = ifelse(startday < 10, paste0(0, startday), startday))
+massmob <- massmob %>% mutate(startmonth = ifelse(startmonth < 10, paste0(0, startmonth), startmonth))
+massmob <- massmob %>% mutate(protest_mdy = ifelse(is.na(startday) == T | is.na(startmonth) == T, NA,  paste0(startmonth, startday, year)))
+
+massmob <- massmob %>% mutate(protest_mdy = mdy(protest_mdy))
+massmob <- massmob %>% filter(is.na(protest_mdy) == F)
+```
+
+
+```{r}
+lji <- lji %>% filter(is.na(country_id) == FALSE)
+nelda <- nelda %>% filter(is.na(country_id) == FALSE)
+massmob <- massmob %>% filter(is.na(country_id) == FALSE)
+ 
+
+#Lagging econ crisis
+
+nelda <- nelda %>% group_by(country_id) %>% mutate(econ.crisis.nelda.1lag = lag(econ.crisis.nelda))
+
+#Merging
+nelda <- nelda %>% merge(lji %>% dplyr::select(LJI, lji.lag, country_id_year), by = "country_id_year")
+
+nelda <- nelda %>% merge(vdem.recent %>% dplyr::select(v2elintmon.lag, v2elintmon, v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat, v2xlg_legcon, legcon.1lag, polyarchy.1lag, libdem.1lag, partipdem.1lag, 
+                                                  delibdem.1lag,
+                                                  elcompindex.m.1lag,
+                                                  opposition.oversight.lag,
+                                                  v2elirreg.inv,
+                                                  reform_positive.lag,
+                                                  e_mipopula,
+                                                  e_miurbani,
+                                                  e_miurbpop,
+                                                  e_wb_pop, #Population
+                                                  v2xps_party, #Party institutionalization
+                                                  #v2regoppgroupssize, #Opp group size (categorical)
+                                                  v2pscohesv, #Legislative party cohesion
+                                                  v2exl_legitratio, 
+                                                  v2exl_legitperf,
+                                                  v2exl_legitlead,
+                                                  v2exl_legitideol,
+                                                  v2xnp_regcorr,
+                                                  v2xeg_eqprotec,
+                                                  v2xeg_eqdr,
+                                                  v2xeg_eqaccess,
+                                                  v3lgcrrpt,
+                                                  legcorrupt.lag,
+                                                  exbribe.lag,
+                                                  v2exbribe,
+                                                  exembez.lag,
+                                                  v2exembez,
+                                                  pubseccorrup.lag,
+                                                  v2excrptps,
+                                                  partybarriers.lag,
+                                                  v2psbars,
+                                                  natlpartyorg.lag,
+                                                  v2psorgs,
+                                                  partybranch.lag,
+                                                  v2psprbrch,
+                                                  v2stfisccap_ord,
+                                                  v2stfisccap,
+                                                  v2pepwrses, #Power distribution by wealth
+                                                  v2pepwrsoc, #Power distribution by social group
+                                                  v2csreprss,
+                                                  csrepress.1lag,
+                                                  osorg.1lag,
+                                                  v2cseeorgs,
+                                                  v2x_clpol,
+                                                  civlib.1lag,
+                                                  jucon.1lag,
+                                                  legcon.1lag,
+                                                  v2ex_elechog,
+egaldem.1lag ,
+altinf.1lag,
+api.1lag,
+mpi.1lag,
+frassoc.1lag,
+suffr.1lag,
+frefair.1lag,
+elecoff.1lag,
+liberal.1lag,
+jucon.1lag,
+partip.1lag,
+cspart.1lag,
+eqdr.1lag,
+oppaut.1lag,
+jureform.1lag,
+jupurge.1lag,
+jupoatck.1lag,
+jupack.1lag,
+juaccnt.1lag,
+juhcind.1lag,
+juncind.1lag,
+mecenefm.1lag,
+gdppcln.1lag,
+gdpgro.1lag,
+inflat.1lag,
+v2elvotbuy,
+v2elirreg,
+v2elintim, v2elfrfair,
+physinteg.1lag, v2x_clphy,
+polyarchy_no_ei,
+liberal_no_jucon, v2elaccept,
+v2cademmob, #pro-democracy mass mob
+v2caautmob, #pro-autoc mass mob
+v2cagenmob, #scale of mobilization
+v2caconmob, #concentration of mobilization in the capital
+v2x_regime,
+prodem.protest.1lead,
+proauth.protest.1lead,
+protest.scale.1lead,
+concen.protest.1lead,
+country_id_year), by = "country_id_year")
+
+nelda <- nelda %>% mutate(winner.margin = ifelse(types == "Executive", v2elvotlrg/100, v2ellovtlg/100))
+nelda <- nelda %>% mutate(presidential = ifelse(types == "Executive", 1, 0))
+
+#
+
+nelda <- nelda %>% mutate(weakstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 0 | v2stfisccap_ord == 1, 1, 0)))
+nelda <- nelda %>% mutate(rentierstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 2, 1, 0)))
+nelda <- nelda %>% mutate(taxstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 3 | v2stfisccap_ord == 4, 1, 0)))
+
+
+
+```
+
+```{r}
+rm(vdem.data)
+rm(vdem.recent)
+```
+
+
+
+
+
+
+## World Bank urbanization data
+
+```{r}
+urban <- read.csv(here::here("Data", "urbanization_worldbank.csv"))
+test <- urban %>%
+  pivot_longer(cols = starts_with("X"),
+               names_to = "year")
+test <- test %>% mutate(year = gsub("X", "", year))
+
+#Next is line up country codes in test and nelda 2, then merge
+
+#nelda <- nelda %>% rename(year = year.x)
+
+library(countrycode)
+
+test <- test %>% mutate(stateid = countrycode(sourcevar = Country.Code, origin = 'iso3c', destination = 'gwc'))
+test <- test %>% rename(urban.pct = value)
+test <- test %>% dplyr::select(year, urban.pct, stateid)
+test <- test %>% mutate(year = as.numeric(year))
+
+nelda <- nelda %>% left_join(test, by = c("stateid", "year"))
+
+```
+
+Starting with nelda from above, and merging with MassMob. This should yield a dataset with nelda elections, vdem data, and massmob protest data
+
+```{r}
+nelda <- nelda %>% rename(country_id = country_id.x)
+nelda_selection <- nelda %>% dplyr::select(electionid, country_id, election_mdy)
+
+  election_id_temp <- nelda_selection$electionid[1]
+  country_temp <- nelda_selection$country_id[1]
+  election_date_temp <- nelda_selection$election_mdy[1] # Get the election date
+  election_row <- nelda_selection[1,]  # Get the election at hand (all Nelda data)
+  massmob_temp <- massmob %>% filter(country_id == country_temp) #Get all protests from the country at hand
+  massmob_temp <- massmob_temp %>% mutate(days_to_election = election_date_temp - protest_mdy) # Get the days between each protest and the election
+  massmob_temp <- massmob_temp %>% filter(days_to_election <= 180 & days_to_election >= -90) #Remove elections outside the window
+  massmob_temp <- massmob_temp %>% mutate(electionid = election_id_temp)
+  election_row <- election_row %>% left_join(massmob_temp, by = "electionid") #Merge Nelda data with remaining protests
+
+
+nelda_massmob <- election_row #Start the dataset
+
+for (i in 201:nrow(nelda)) {  #
+  election_id_temp <- nelda_selection$electionid[i]
+  country_temp <- nelda_selection$country_id[i]
+  election_date_temp <- nelda_selection$election_mdy[i]
+  election_row <- nelda_selection[i,]
+  massmob_temp <- massmob %>% filter(country_id == country_temp)
+  massmob_temp <- massmob_temp %>% mutate(days_to_election = election_date_temp - protest_mdy)
+  massmob_temp <- massmob_temp %>% filter(days_to_election <= 180 & days_to_election >= -90)
+
+  massmob_temp <- massmob_temp %>% mutate(electionid = election_id_temp)
+  election_row <- election_row %>% left_join(massmob_temp, by = "electionid")
+  nelda_massmob <- bind_rows(nelda_massmob, election_row)
+}
+
+##This seems to have worked. Next step should be quality control, as well as making sure all relevant nelda changes happen before this chunk (i.e. the urbanization data below.)
+```
+
+
+
+
+Aggregating participant variables
+```{r}
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(participants_category == "", NA, 
+                                            ifelse(participants_category == "50-99", 1, 
+                                            ifelse(participants_category == "100-999", 2,
+                                            ifelse(participants_category == "1000-1999", 3,
+                                            ifelse(participants_category == "2000-4999", 4,
+                                            ifelse(participants_category == "5000-10000", 5,
+                                                   6)))))))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100s", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000s", 4, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">50", 1, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "50", 1, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000", 3, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "50+", 1, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "10000", 5, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "2000", 4, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "200", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "300", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "500", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "3000", 4, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100+", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "5000", 5, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "20000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "10000s", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "150", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "400", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "hundreds", 2, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "30000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "15000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1500", 3, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 50", 1, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "4000", 4, participants_category_ordered))  ## Stopping here; all other categories have fewer than 20 observations. Beginning second stopping rule:
+
+## Second rule: collect all observations greater than 10,000
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "hundreds of thousands", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "<20000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 40000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 42000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">35000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">40000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">50000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "110000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "14059", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "16000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "18000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "24000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "250000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "30000+", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "35000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "36000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "5000-50000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "55000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "650000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 10000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "13000", 6, participants_category_ordered))
+
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "500000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">15000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">20000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "14000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "400000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "Tens of thousands", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">100000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "150000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "20000+", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "60000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "90000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "10000+", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100000s", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "200000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "80000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">10000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "70000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "80000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "40000", 6, participants_category_ordered))
+
+nelda_massmob <- nelda_massmob %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "25000", 6, participants_category_ordered))
+
+
+
+
+
+#nelda_massmob <- nelda_massmob %>% group_by(electionid) %>% 
+```
+
+Remove post-election protests unrelated to election
+
+```{r}
+nelda_massmob <- nelda_massmob %>% rename(notes_massmob = notes)
+
+nelda_massmob <- nelda_massmob %>% filter(is.na(protest_mdy) == T | protest_mdy < election_mdy | (protest_mdy >= election_mdy & str_detect(notes_massmob, regex(pattern = "election*|vot*|ballot*", ignore_case = T))))
+```
+
+
+Getting grouped summarize for number and size
+```{r}
+nelda_massmob.pre <- nelda_massmob %>% filter(as.numeric(days_to_election) > 0) #protest_mdy < election_mdy
+nelda_massmob.post <- nelda_massmob %>% filter(as.numeric(days_to_election) <= 0)
+
+
+count_data_mm_pre <- nelda_massmob.pre %>% group_by(electionid) %>% summarize(n.events.massmob.pre = sum(protestnumber))
+count_data_mm_post <-nelda_massmob.post %>% group_by(electionid) %>% summarize(n.events.massmob.post = sum(protestnumber))
+
+
+size_data_mm_pre <- nelda_massmob.pre %>% group_by(electionid) %>% summarize(median.participants.mm.pre = median(participants_category_ordered, na.rm = T))
+size_data_mm_post <- nelda_massmob.post %>% group_by(electionid) %>% summarize(median.participants.mm.post = median(participants_category_ordered, na.rm = T))
+
+
+```
+
+
+
+## Merge data from nelda_massmob back to edited nelda
+
+
+
+```{r}
+##Problem here: Do not merge back into nelda_massmob. Merge back into a version of NELDA without massmob. (But still include V-Dem variables etc, and exclude the necessary time periods and cases.)
+
+##Combined post data together, then pre data, then both
+mm_data_post_comb <- left_join(count_data_mm_post, size_data_mm_post, by = "electionid")
+mm_data_pre_comb <- left_join(count_data_mm_pre, size_data_mm_pre, by = "electionid")
+
+mm_data_comb <- left_join(mm_data_pre_comb, mm_data_post_comb, by = "electionid")
+
+#mm_data_comb <- mm_data_comb %>% rename(electionid = NeldaID)
+
+## Merge back to Nelda classic
+nelda_complete <- nelda %>% left_join(mm_data_comb, by = "electionid")
+
+#nelda_massmob <- nelda_massmob %>% left_join(mm_data_comb, by = "electionid")  ## Double check to make sure this joining works
+
+
+## Code NAs for number of protests as 0s (these reflect election years recorded in NELDA where there were no protests recorded by MM)
+
+nelda_complete <- nelda_complete %>% mutate(n.events.massmob.pre = ifelse(is.na(n.events.massmob.pre)==T, 0, n.events.massmob.pre))
+nelda_complete <- nelda_complete %>% mutate(n.events.massmob.post = ifelse(is.na(n.events.massmob.post)==T, 0, n.events.massmob.post))
+
+nelda_complete <- nelda_complete %>% mutate(median.participants.mm.pre = ifelse(is.na(median.participants.mm.pre)==T & n.events.massmob.pre == 0, 0, median.participants.mm.pre))
+nelda_complete <- nelda_complete %>% mutate(median.participants.mm.post = ifelse(is.na(median.participants.mm.post)==T & n.events.massmob.post == 0, 0, median.participants.mm.pre))
+
+## Rounding participant median numbers down (removes half-steps)
+
+nelda_complete <- nelda_complete %>% mutate(median.participants.mm.post = floor(median.participants.mm.post))
+nelda_complete <- nelda_complete %>% mutate(median.participants.mm.pre = floor(median.participants.mm.pre))
+
+
+```
+
+
+
+
+## Subset to limit to electoral auth and dem
+
+```{r}
+nelda_complete <- nelda_complete %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
+```
+
+
+## Merge with winner share updated
+
+```{r}
+winner.shares <- read.csv(here::here("Data", "amended_vote_shares.csv"))
+winner.shares <- winner.shares %>% rename(electionid = NeldaID)
+nelda_complete <- nelda_complete %>% left_join(winner.shares, by = "electionid")
+
+```
+
+
+## Writing
+
+```{r}
+write.csv(nelda_complete, here::here("Data", "nelda_complete.csv"))
+```
