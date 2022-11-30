@@ -21,8 +21,8 @@ Note: check on how massmob data merges with nelda. We want cases where this is n
 ```{r}
 nelda <- read_xls(here::here("Data", "NELDA.xls"))
 ecav <- read_xls(here::here("Data", "ECAV datatset_Version 1.2.xls"))
-vdem.data <- read_rds("C:/Users/colharv/Documents/Research projects/Country_Year_V-Dem_Full_others_R_v11.1/Country_Year_V-Dem_Full+others_R_v11.1/V-Dem-CY-Full+Others-v11.1.rds") #Switch between these two for work desktop vs. laptop
-#vdem.data <- vdem
+#vdem.data <- read_rds("C:/Users/colharv/Documents/Research projects/Country_Year_V-Dem_Full_others_R_v11.1/Country_Year_V-Dem_Full+others_R_v11.1/V-Dem-CY-Full+Others-v11.1.rds") #Switch between these two for work desktop vs. laptop
+vdem.data <- vdemdata::vdem
 lji <- read.csv(here::here("Data", "LJI-estimates-20140422.csv"))
 massmob <- read.csv(here::here("Data", "mmALL_073119_csv.csv"))
 ```
@@ -204,6 +204,7 @@ lji <- lji %>% group_by(ccode) %>% mutate(lji.lag = lag(LJI))
 Cleaning nelda date variable and massmob date
 ```{r}
 nelda <- nelda %>% mutate(mmdd = ifelse(mmdd < 1000, paste0(0, mmdd), mmdd))
+
 nelda <- nelda %>% mutate(election_mdy = paste0(mmdd, year))
 nelda <- nelda %>% mutate(election_mdy = mdy(election_mdy))
 
@@ -340,6 +341,39 @@ nelda3 <- massmob %>% left_join(nelda3, by = c("country_id", "year"))
 
 
 
+Starting with nelda2 from above, and merging with MassMob. This should yield a dataset with nelda elections, vdem data, and massmob protest data
+
+```{r}
+nelda2 <- nelda2 %>% rename(country_id = country_id.x)
+
+  election_id_temp <- nelda2$electionid[i]
+  country_temp <- nelda2$country_id[i]
+  election_date_temp <- nelda2$election_mdy[i]
+  election_row <- nelda2[i,]
+  massmob_temp <- massmob %>% filter(country_id == country_temp)
+  massmob_temp <- massmob_temp %>% mutate(days_to_election = election_date_temp - protest_mdy)
+  massmob_temp <- massmob_temp %>% filter(days_to_election <= 180 & days_to_election >= -90)
+  massmob_temp <- massmob_temp %>% mutate(electionid = election_id_temp)
+  election_row <- election_row %>% left_join(massmob_temp, by = "electionid")
+
+
+nelda_massmob <- election_row
+
+for (i in 101:nrow(nelda2)) {
+  election_id_temp <- nelda2$electionid[i]
+  country_temp <- nelda2$country_id[i]
+  election_date_temp <- nelda2$election_mdy[i]
+  election_row <- nelda2[i,]
+  massmob_temp <- massmob %>% filter(country_id == country_temp)
+  massmob_temp <- massmob_temp %>% mutate(days_to_election = election_date_temp - protest_mdy)
+  massmob_temp <- massmob_temp %>% filter(days_to_election <= 180 & days_to_election >= -90)
+  massmob_temp <- massmob_temp %>% mutate(electionid = election_id_temp)
+  election_row <- election_row %>% left_join(massmob_temp, by = "electionid")
+  nelda_massmob <- bind_rows(nelda_massmob, election_row)
+}
+
+##This seems to have worked. Next step should be quality control, as well as making sure all relevant nelda2 changes happen before this chunk (i.e. the urbanization data below.)
+```
 
 
 
@@ -474,57 +508,10 @@ nelda2.sub <- nelda2.sub %>% left_join(test, by = c("stateid", "year"))
 ```
 
 
-Excluding protest events in MM that take place more than 180 days before an election (events_pre) or more than 90 days after an election (events_post)
-
-```{r}
-elections_db <- nelda %>% dplyr::select(country_id, election_mdy) # A second dataframe with election dates by country
-
-nelda3.sub <- slice(nelda3, 0)
-
-for (i in 1:nrow(nelda3)) {
-  country_id_temp <- nelda3$country_id[i]
-  elections_db_temp <- elections_db %>% filter(country_id == country_id_temp)
-  protest_event_slice <- nelda3[i,]
-  for (j in 1:nrow(elections_db_temp)) {
-    elections_db_temp <- elections_db_temp %>% mutate(days_to_election_all =  election_mdy - protest_event_slice$protest_mdy)
-    #Negative numbers mean the protest is after the election, positive numbers mean the protest is before the election
-    elections_db_temp <- elections_db_temp %>% mutate(days_to_election_all_num = as.numeric(days_to_election_all))
-    elections_db_temp <- elections_db_temp %>% filter(days_to_election_all_num <= 180 & days_to_election_all_num >= -90)
-  }
-}
-```
-
-
-Cutting out protests before elections for nelda 3, 
-```{r}
-#Add electionid to the year before the election and year after (so that grouping variable can capture those protests if needed)
-nelda3 <- nelda3 %>% group_by(country_id) %>% mutate(election_date_upcoming = as_date(ifelse(is.na(election_year)==F, election_mdy, 
-                                                  ifelse(is.na(election_year)==T & is.na(lead(election_mdy))==F,
-                                                                          lead(election_mdy), NA))))
 
 
 
-nelda3 <- nelda3 %>% group_by(country_id) %>% mutate(election_date_lagged = as_date(ifelse(is.na(election_year)==F, election_mdy,                                                         ifelse(is.na(election_year)==T & is.na(lag(election_mdy))==F, lag(election_mdy), NA))))
 
-## Now filter by date of protest
-
-# Steps:
-  #1) Remove rows where election_upcoming and election_lagged are both NA. 
-  #2) This results in a dataframe with only election years +-1 year; create interval variables (lagged and leading days between protest and election)
-  #3 Filter to cases that are six months before to 3 months after election (i.e 180 days and 90 days)
-
-nelda3.sub <- nelda3 %>% filter(is.na(election_date_upcoming)==F | is.na(election_date_lagged) == F)
-
-
-nelda3.sub <- nelda3.sub %>% mutate(protest_preelex_interval = ifelse((election_mdy - protest_mdy) >0, (election_mdy-protest_mdy), NA))
-
-nelda3.sub <- nelda3.sub %>% mutate(protest_postelex_interval = ifelse((election_mdy - protest_mdy) <= 0, (protest_mdy - election_mdy), NA))
-
-
-nelda3.sub <- nelda3.sub %>% group_by(ccode) %>% filter(protest_preelex_interval <= 180 | protest_postelex_interval <= 90)
-
-# Next step is to aggregate needed variables (participants) by electionid
-```
 
 Aggregating participant variables
 ```{r}
