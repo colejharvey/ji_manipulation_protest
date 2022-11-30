@@ -224,11 +224,11 @@ test <- tidy.hurdle.count(model.n.base.hurd)
 ```{r zero-model-table, echo=FALSE}
 
 models <- list()
-models[['Model 1']] <- model.n.base.hurd
-models[['Model 2']] <- model.n.base2.hurd
-models[['Model 3']] <- model.n.griev.hurd
-models[['Model 4']] <- model.n.griev2.hurd
-models[['Model 5']] <- model.n.griev3.hurd
+models[['Model 1']] <- model.n.base.hurd.mm
+models[['Model 2']] <- model.n.base2.hurd.mm
+models[['Model 3']] <- model.n.griev.hurd.mm
+models[['Model 4']] <- model.n.griev2.hurd.mm
+models[['Model 5']] <- model.n.griev3.hurd.mm
 
 
 modelsummary::modelsummary(models, coef_omit = "count", gof_omit = "R2", stars = T)
