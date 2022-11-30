@@ -24,18 +24,17 @@ ecav <- read_xls(here::here("Data", "ECAV datatset_Version 1.2.xls"))
 vdem.data <- read_rds("C:/Users/colharv/Documents/Research projects/Country_Year_V-Dem_Full_others_R_v11.1/Country_Year_V-Dem_Full+others_R_v11.1/V-Dem-CY-Full+Others-v11.1.rds") #Switch between these two for work desktop vs. laptop
 #vdem.data <- vdem
 lji <- read.csv(here::here("Data", "LJI-estimates-20140422.csv"))
-massmob <- read.csv(here::here("Data", "mmALL_073119_csv.csv"))
 ```
 
 Cleaning nelda variables--this will have to be done for all used variables
 ```{r}
 nelda <- nelda %>% dplyr::rename(first.mp.election = nelda2)
-nelda <- nelda %>% rename(protests = nelda29)
+nelda <- nelda %>% rename(protests = nelda9)
 nelda <- nelda %>% rename(inc.fav.cancel = nelda34)
 nelda <- nelda %>% rename(inc.lose = nelda24)
 nelda <- nelda %>% rename(inc.termlimit = nelda8)
 nelda <- nelda %>% rename(econ.crisis.nelda = nelda18)
-nelda <- nelda %>% rename(opp.votegain = nelda27)
+nelda <- nelda %>% rename(opp.votegain = nelda7)
 nelda <- nelda %>% rename(nelda.protests.fraud = nelda30)
 nelda <- nelda %>% rename(new.elections.held = nelda37)
 nelda <- nelda %>% rename(inc.replaced.prot = nelda41)
@@ -75,19 +74,6 @@ nelda <- nelda %>% mutate(new.elections.held = ifelse(new.elections.held == "yes
 ```
 
 
-Coding anti-gov violence from ecav
-
-```{r}
-## Coding anti-government initiation of violence
-
-ecav <- ecav %>% mutate(antigov.violence = 
-                          ifelse(EventViolence == 0, 0,
-                                 ifelse(ViolenceInitiator == "-99", NA,
-                                                  ifelse(ViolenceInitiator == ".1" & Actor1Side == 1, 1, 
-                                                  ifelse(ViolenceInitiator == ".2" & Actor2Side == 1, 1,
-                                                         ifelse(ViolenceInitiator == "1.1" & Target1Side == 1, 1,
-                                                                ifelse(ViolenceInitiator == "2.1" & Target2Side == 1, 1, 0)))))))
-```
 
 Adding a vdem ID to the other packages
 
@@ -97,13 +83,12 @@ nelda <- nelda %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "
  #Missing matches here look to be countries below the population threshold: some Carib. islands, Monaco, etc.
 lji <- lji %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", 
                                                destination = "vdem"))
-massmob <- massmob %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "p4n", 
-                                               destination = "vdem")) #Missing here tend to be communist states that no longer exist
 
 nelda <- nelda %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 lji <- lji %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 vdem.data <- vdem.data %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
-massmob <- massmob %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+
+ecav <- ecav %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", destination = "vdem"))
 
 ```
 
@@ -201,28 +186,22 @@ Imporant variables to include but not lag: v2eltvrexo, v2elvotlrg, v2elvotsml, v
 lji <- lji %>% group_by(ccode) %>% mutate(lji.lag = lag(LJI))
 ```
 
-Cleaning nelda date variable and massmob date
+Cleaning nelda date variable
 ```{r}
 nelda <- nelda %>% mutate(mmdd = ifelse(mmdd < 1000, paste0(0, mmdd), mmdd))
 nelda <- nelda %>% mutate(election_mdy = paste0(mmdd, year))
 nelda <- nelda %>% mutate(election_mdy = mdy(election_mdy))
 
-massmob <- massmob %>% mutate(startday = ifelse(startday < 10, paste0(0, startday), startday))
-massmob <- massmob %>% mutate(startmonth = ifelse(startmonth < 10, paste0(0, startmonth), startmonth))
-massmob <- massmob %>% mutate(protest_mdy = ifelse(is.na(startday) == T | is.na(startmonth) == T, NA,  paste0(startmonth, startday, year)))
 
-massmob <- massmob %>% mutate(protest_mdy = mdy(protest_mdy))
-massmob <- massmob %>% filter(is.na(protest_mdy) == F)
 ```
 
 
-Merging
+Merging Nelda with LJI and Vdem
 
 ```{r}
 lji <- lji %>% filter(is.na(country_id) == FALSE)
 nelda <- nelda %>% filter(is.na(country_id) == FALSE)
-massmob <- massmob %>% filter(is.na(country_id) == FALSE)
- 
+
 
 #Lagging econ crisis
 
@@ -331,45 +310,54 @@ nelda2 <- nelda2 %>% mutate(rentierstate = ifelse(is.na(v2stfisccap_ord) == T, N
 nelda2 <- nelda2 %>% mutate(taxstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 3 | v2stfisccap_ord == 4, 1, 0)))
 
 
-#nelda3 <- nelda2 %>% merge(massmob, by = "country_id_year")
-
-nelda3 <- nelda %>% dplyr::select(ccode, country, country_id, year, electionid, election_mdy)
-nelda3 <- nelda3 %>% mutate(election_year = year)
-nelda3 <- massmob %>% left_join(nelda3, by = c("country_id", "year"))
 ```
 
 
 
 
-
-
-
-
-##Nelda2 looks at NELDA variables as DV
+##Nelda2 looks at ECAV variables as DV
 
 
 ```{r}
 rm(vdem.data)
 rm(vdem.recent)
 rm(lji)
-rm(nelda)
-rm(massmob)
+#rm(nelda)
 ```
 
+
+
+
+Coding anti-gov violence from ecav
+
 ```{r}
-nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
+## Coding anti-government initiation of violence
+
+ecav <- ecav %>% mutate(antigov.violence = 
+                          ifelse(EventViolence == 0, 0,
+                                 ifelse(ViolenceInitiator == "-99", NA,
+                                                  ifelse(ViolenceInitiator == ".1" & Actor1Side == 1, 1, 
+                                                  ifelse(ViolenceInitiator == ".2" & Actor2Side == 1, 1,
+                                                         ifelse(ViolenceInitiator == "1.1" & Target1Side == 1, 1,
+                                                                ifelse(ViolenceInitiator == "2.1" & Target2Side == 1, 1, 0)))))))
 ```
+
+
+
+
 
 ```{r}
 ecav.pre <- ecav %>% filter(Date < Electiondate)
-ecav.pre <- ecav.pre %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+ecav.pre <- ecav.pre %>% filter(str_detect(EventName, "rotest") == T | str_detect(EventName, "ccupation") == T |
+                                  str_detect(EventName, "lockade") == T) #Only captures protests
 
-ecav <- ecav %>% filter(Date >= Electiondate)
-ecav <- ecav %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+ecav.post <- ecav %>% filter(Date >= Electiondate)
+ecav.post <- ecav.post %>% filter(str_detect(EventName, "rotest") == T | str_detect(EventName, "ccupation") == T |
+                                  str_detect(EventName, "lockade") == T) #Only captures protests
 ```
 
 
-
+--Next step is to create and double-check the summaries, make sure that when merged back in with Nelda2 that we get events with zero protests
 
 Grouped summaries
 ```{r}
@@ -737,6 +725,12 @@ nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.post = floor(median.p
 nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.pre = floor(median.participants.mm.pre))
 
 
+```
+
+## Remove closed autoc and lib dem
+
+```{r}
+nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
 ```
 
 
