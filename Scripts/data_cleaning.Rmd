@@ -24,18 +24,17 @@ ecav <- read_xls(here::here("Data", "ECAV datatset_Version 1.2.xls"))
 #vdem.data <- read_rds("C:/Users/colharv/Documents/Research projects/Country_Year_V-Dem_Full_others_R_v11.1/Country_Year_V-Dem_Full+others_R_v11.1/V-Dem-CY-Full+Others-v11.1.rds") #Switch between these two for work desktop vs. laptop
 vdem.data <- vdemdata::vdem
 lji <- read.csv(here::here("Data", "LJI-estimates-20140422.csv"))
-massmob <- read.csv(here::here("Data", "mmALL_073119_csv.csv"))
 ```
 
 Cleaning nelda variables--this will have to be done for all used variables
 ```{r}
 nelda <- nelda %>% dplyr::rename(first.mp.election = nelda2)
-nelda <- nelda %>% rename(protests = nelda29)
+nelda <- nelda %>% rename(protests = nelda9)
 nelda <- nelda %>% rename(inc.fav.cancel = nelda34)
 nelda <- nelda %>% rename(inc.lose = nelda24)
 nelda <- nelda %>% rename(inc.termlimit = nelda8)
 nelda <- nelda %>% rename(econ.crisis.nelda = nelda18)
-nelda <- nelda %>% rename(opp.votegain = nelda27)
+nelda <- nelda %>% rename(opp.votegain = nelda7)
 nelda <- nelda %>% rename(nelda.protests.fraud = nelda30)
 nelda <- nelda %>% rename(new.elections.held = nelda37)
 nelda <- nelda %>% rename(inc.replaced.prot = nelda41)
@@ -75,19 +74,6 @@ nelda <- nelda %>% mutate(new.elections.held = ifelse(new.elections.held == "yes
 ```
 
 
-Coding anti-gov violence from ecav
-
-```{r}
-## Coding anti-government initiation of violence
-
-ecav <- ecav %>% mutate(antigov.violence = 
-                          ifelse(EventViolence == 0, 0,
-                                 ifelse(ViolenceInitiator == "-99", NA,
-                                                  ifelse(ViolenceInitiator == ".1" & Actor1Side == 1, 1, 
-                                                  ifelse(ViolenceInitiator == ".2" & Actor2Side == 1, 1,
-                                                         ifelse(ViolenceInitiator == "1.1" & Target1Side == 1, 1,
-                                                                ifelse(ViolenceInitiator == "2.1" & Target2Side == 1, 1, 0)))))))
-```
 
 Adding a vdem ID to the other packages
 
@@ -97,13 +83,12 @@ nelda <- nelda %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "
  #Missing matches here look to be countries below the population threshold: some Carib. islands, Monaco, etc.
 lji <- lji %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", 
                                                destination = "vdem"))
-massmob <- massmob %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "p4n", 
-                                               destination = "vdem")) #Missing here tend to be communist states that no longer exist
 
 nelda <- nelda %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 lji <- lji %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 vdem.data <- vdem.data %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
-massmob <- massmob %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+
+ecav <- ecav %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", destination = "vdem"))
 
 ```
 
@@ -201,29 +186,23 @@ Imporant variables to include but not lag: v2eltvrexo, v2elvotlrg, v2elvotsml, v
 lji <- lji %>% group_by(ccode) %>% mutate(lji.lag = lag(LJI))
 ```
 
-Cleaning nelda date variable and massmob date
+Cleaning nelda date variable
 ```{r}
 nelda <- nelda %>% mutate(mmdd = ifelse(mmdd < 1000, paste0(0, mmdd), mmdd))
 
 nelda <- nelda %>% mutate(election_mdy = paste0(mmdd, year))
 nelda <- nelda %>% mutate(election_mdy = mdy(election_mdy))
 
-massmob <- massmob %>% mutate(startday = ifelse(startday < 10, paste0(0, startday), startday))
-massmob <- massmob %>% mutate(startmonth = ifelse(startmonth < 10, paste0(0, startmonth), startmonth))
-massmob <- massmob %>% mutate(protest_mdy = ifelse(is.na(startday) == T | is.na(startmonth) == T, NA,  paste0(startmonth, startday, year)))
 
-massmob <- massmob %>% mutate(protest_mdy = mdy(protest_mdy))
-massmob <- massmob %>% filter(is.na(protest_mdy) == F)
 ```
 
 
-Merging
+Merging Nelda with LJI and Vdem
 
 ```{r}
 lji <- lji %>% filter(is.na(country_id) == FALSE)
 nelda <- nelda %>% filter(is.na(country_id) == FALSE)
-massmob <- massmob %>% filter(is.na(country_id) == FALSE)
- 
+
 
 #Lagging econ crisis
 
@@ -332,15 +311,26 @@ nelda2 <- nelda2 %>% mutate(rentierstate = ifelse(is.na(v2stfisccap_ord) == T, N
 nelda2 <- nelda2 %>% mutate(taxstate = ifelse(is.na(v2stfisccap_ord) == T, NA, ifelse(v2stfisccap_ord == 3 | v2stfisccap_ord == 4, 1, 0)))
 
 
-#nelda3 <- nelda2 %>% merge(massmob, by = "country_id_year")
-
-nelda3 <- nelda %>% dplyr::select(ccode, country, country_id, year, electionid, election_mdy)
-nelda3 <- nelda3 %>% mutate(election_year = year)
-nelda3 <- massmob %>% left_join(nelda3, by = c("country_id", "year"))
 ```
 
+## World Bank urbanization data
 
+```{r}
+urban <- read.csv(here::here("Data", "urbanization_worldbank.csv"))
+test <- urban %>%
+  pivot_longer(cols = starts_with("X"),
+               names_to = "year")
+test <- test %>% mutate(year = gsub("X", "", year))
 
+#Next is line up country codes in test and nelda 2, then merge
+
+library(countrycode)
+
+test <- test %>% mutate(stateid = countrycode(sourcevar = Country.Code, origin = 'iso3c', destination = 'gwc'))
+test <- test %>% rename(urban.pct = value)
+test <- test %>% dplyr::select(year, urban.pct, stateid)
+
+<<<<<<< HEAD
 Starting with nelda2 from above, and merging with MassMob. This should yield a dataset with nelda elections, vdem data, and massmob protest data
 
 ```{r}
@@ -374,76 +364,99 @@ for (i in 101:nrow(nelda2)) {
 
 ##This seems to have worked. Next step should be quality control, as well as making sure all relevant nelda2 changes happen before this chunk (i.e. the urbanization data below.)
 ```
+=======
+nelda2 <- nelda2 %>% mutate(year = as.character(year))
+>>>>>>> f0e25c982a83853102e8f176966a7ac06a457266
+
+nelda2 <- nelda2 %>% left_join(test, by = c("stateid", "year"))
+
+```
 
 
 
-
-
-##Nelda2 looks at NELDA variables as DV
+##Nelda2 looks at ECAV variables as DV
 
 
 ```{r}
 rm(vdem.data)
 rm(vdem.recent)
 rm(lji)
-rm(nelda)
-rm(massmob)
+#rm(nelda)
 ```
 
+
+
+
+Coding anti-gov violence from ecav
+
 ```{r}
-nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
+## Coding anti-government initiation of violence
+
+ecav <- ecav %>% mutate(antigov.violence = 
+                          ifelse(EventViolence == 0, 0,
+                                 ifelse(ViolenceInitiator == "-99", NA,
+                                                  ifelse(ViolenceInitiator == ".1" & Actor1Side == 1, 1, 
+                                                  ifelse(ViolenceInitiator == ".2" & Actor2Side == 1, 1,
+                                                         ifelse(ViolenceInitiator == "1.1" & Target1Side == 1, 1,
+                                                                ifelse(ViolenceInitiator == "2.1" & Target2Side == 1, 1, 0)))))))
 ```
+
+
+
+
 
 ```{r}
 ecav.pre <- ecav %>% filter(Date < Electiondate)
-ecav.pre <- ecav.pre %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+ecav.pre <- ecav.pre %>% filter(str_detect(EventName, "rotest") == T | str_detect(EventName, "ccupation") == T |
+                                  str_detect(EventName, "lockade") == T) #Only captures protests
 
-ecav <- ecav %>% filter(Date >= Electiondate)
-ecav <- ecav %>% filter(str_detect(EventName, "rotest") == T) #Only captures protests
+ecav.post <- ecav %>% filter(Date >= Electiondate)
+ecav.post <- ecav.post %>% filter(str_detect(EventName, "rotest") == T | str_detect(EventName, "ccupation") == T |
+                                  str_detect(EventName, "lockade") == T) #Only captures protests
 ```
 
 
-
+--Next step is to create and double-check the summaries, make sure that when merged back in with Nelda2 that we get events with zero protests
 
 Grouped summaries
 ```{r}
 count_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(n.events.pre = n())
-count_data_post <- ecav %>% group_by(NeldaID) %>% summarize(n.events.post = n())
+count_data_post <- ecav.post %>% group_by(NeldaID) %>% summarize(n.events.post = n())
 
 
 
 ##Duration
-max_date <- ecav %>% group_by(NeldaID) %>% summarize(latest.event = max(Date))
-min_date <- ecav %>% group_by(NeldaID) %>% summarize(earliest.event = min(Date))
+max_date <- ecav.post %>% group_by(NeldaID) %>% summarize(latest.event = max(Date))
+min_date <- ecav.post %>% group_by(NeldaID) %>% summarize(earliest.event = min(Date))
 duration_data <- left_join(min_date, max_date, by = "NeldaID")
 duration_data <- duration_data %>% mutate(d.events = as.duration(interval(earliest.event, latest.event)))
 duration_data <- duration_data %>% mutate(d.events.num = as.numeric(d.events, "days"))
 duration_data <- duration_data %>% mutate(d.events.num = ifelse(d.events.num == 0, 1, d.events.num)) #1-day events
 
 ##Size
-ecav <- ecav %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
-size_data <- ecav %>% group_by(NeldaID) %>% summarize(median.participants = median(ParticipantNumber, na.rm = T))
+ecav.post <- ecav.post %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
+size_data_post <- ecav.post %>% group_by(NeldaID) %>% summarize(median.participants = median(ParticipantNumber, na.rm = T))
 
 ecav.pre <- ecav.pre %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
 size_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(median.participants.pre = median(ParticipantNumber, na.rm = T))
 
 
 ## Violence
-violence_data <- ecav %>% group_by(NeldaID) %>% summarize(antigov.violence = sum(antigov.violence, na.rm = T))
+violence_data_post <- ecav.post %>% group_by(NeldaID) %>% summarize(antigov.violence = sum(antigov.violence, na.rm = T))
 violence_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(antigov.violence.pre = sum(antigov.violence, na.rm = T))
 
 
 
 ##Combined
-ecav_data <- left_join(count_data_post, duration_data, by = "NeldaID")
-ecav_data <- left_join(ecav_data, size_data, by = "NeldaID")
-ecav_data <- left_join(ecav_data, violence_data, by = "NeldaID")
+ecav_data_post <- left_join(count_data_post, duration_data, by = "NeldaID")
+ecav_data_post <- left_join(ecav_data_post, size_data_post, by = "NeldaID")
+ecav_data_post <- left_join(ecav_data_post, violence_data_post, by = "NeldaID")
 
 
 ecav_data_pre <- left_join(count_data_pre, size_data_pre, by = "NeldaID")
 ecav_data_pre <- left_join(ecav_data_pre, violence_data_pre, by = "NeldaID")
 
-ecav_data <- left_join(ecav_data, ecav_data_pre, by = "NeldaID")
+ecav_data <- left_join(ecav_data_post, ecav_data_pre, by = "NeldaID")
 
 
 
@@ -454,35 +467,13 @@ ecav_data <- left_join(ecav_data, ecav_data_pre, by = "NeldaID")
 Merge ECAV with NELDA
 
 ```{r}
-nelda2.sub <- nelda2.sub %>% rename(NeldaID = electionid)
-nelda2.sub <- left_join(nelda2.sub, ecav_data, by = "NeldaID")
-
-
-##Cleaning
-
-nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence)==T, 0, antigov.violence))
-nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post)==T, 0, n.events.post))
-nelda2.sub <- nelda2.sub %>% mutate(d.events.num = ifelse(is.na(d.events.num)==T, 0, d.events.num))
-#nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(is.na(median.participants)==T, 0, median.participants))
-
-nelda2.sub <- nelda2.sub %>% mutate(any.ecav.protest = ifelse(n.events.post >= 1, 1, 0))
-
-##Making the assumption that NAs for pre-election protest are zero
-nelda2.sub <- nelda2.sub %>% mutate(n.events.pre = ifelse(is.na(n.events.pre) == T, 0, n.events.pre))
-nelda2.sub <- nelda2.sub %>% mutate(antigov.violence.pre = ifelse(is.na(antigov.violence.pre) == T, 0, antigov.violence.pre))
-
-
-```
-
-
-```{r}
-#nelda3 <- nelda3 %>% mutate(protests.postelex = ifelse(protests == 1 & protesterdemand1 == "political behavior, process", 1, 0))
-
-#nelda3 <- nelda3 %>% mutate(protests.postelex.quant = ifelse(protests.postelex == 1, protestnumber, 0))
+nelda2 <- nelda2 %>% rename(NeldaID = electionid)
+nelda2 <- left_join(nelda2, ecav_data, by = "NeldaID")
 ```
 
 
 
+<<<<<<< HEAD
 
 ## World Bank urbanization data
 
@@ -514,217 +505,46 @@ nelda2.sub <- nelda2.sub %>% left_join(test, by = c("stateid", "year"))
 
 
 Aggregating participant variables
+=======
+## Remove closed autoc and lib dem
+
 ```{r}
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(participants_category == "", NA, 
-                                            ifelse(participants_category == "50-99", 1, 
-                                            ifelse(participants_category == "100-999", 2,
-                                            ifelse(participants_category == "1000-1999", 3,
-                                            ifelse(participants_category == "2000-4999", 4,
-                                            ifelse(participants_category == "5000-10000", 5,
-                                                   6)))))))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100s", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000s", 4, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">50", 1, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "50", 1, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000", 3, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "50+", 1, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "10000", 5, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "2000", 4, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "200", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "300", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "500", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "3000", 4, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100+", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "5000", 5, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "20000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "10000s", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "150", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "400", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "hundreds", 2, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "30000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "15000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1500", 3, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 50", 1, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "4000", 4, participants_category_ordered))  ## Stopping here; all other categories have fewer than 20 observations. Beginning second stopping rule:
-
-## Second rule: collect all observations greater than 10,000
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "hundreds of thousands", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "<20000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 40000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 42000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">35000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">40000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">50000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "110000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "14059", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "16000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "18000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "24000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "250000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "30000+", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "35000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "36000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "5000-50000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "55000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "650000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "> 10000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "1000000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "13000", 6, participants_category_ordered))
-
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "500000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">15000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">20000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "14000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "400000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "Tens of thousands", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">100000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "150000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "20000+", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "60000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "90000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "10000+", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "100000s", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "200000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "80000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== ">10000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "70000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "80000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "40000", 6, participants_category_ordered))
-
-nelda3.sub <- nelda3.sub %>% mutate(participants_category_ordered = ifelse(is.na(participants_category_ordered) == T & participants== "25000", 6, participants_category_ordered))
-
-
-
-
-
-#nelda3.sub <- nelda3.sub %>% group_by(electionid) %>% 
+nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
 ```
 
-Remove post-election protests unrelated to election
 
+## Remove elections before 1989-10-04 and after 2013-1-13 (ecav range)
+
+>>>>>>> f0e25c982a83853102e8f176966a7ac06a457266
 ```{r}
-nelda3.sub <- nelda3.sub %>% filter(protest_mdy < election_mdy | (protest_mdy >= election_mdy & str_detect(notes, regex(pattern = "election*|vot*|ballot*", ignore_case = T))))
+nelda2.sub <- nelda2.sub %>% filter(election_mdy >= "1989-10-04")
+nelda2.test <- nelda2.sub %>% filter(election_mdy <= "2013-01-13")
 ```
 
-Getting grouped summarize for number and size
+
 ```{r}
-nelda3.sub.pre <- nelda3.sub %>% filter(protest_mdy < election_mdy)
-nelda3.sub.post <- nelda3.sub %>% filter(protest_mdy >= election_mdy)
 
+##Cleaning
 
-count_data_mm_pre <- nelda3.sub.pre %>% group_by(electionid) %>% summarize(n.events.massmob.pre = sum(protestnumber))
-count_data_mm_post <- nelda3.sub.post %>% group_by(electionid) %>% summarize(n.events.massmob.post = sum(protestnumber))
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence)==T, 0, antigov.violence))
+nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post)==T, 0, n.events.post))
+nelda2.sub <- nelda2.sub %>% mutate(d.events.num = ifelse(is.na(d.events.num)==T, 0, d.events.num))
+#nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(is.na(median.participants)==T, 0, median.participants))
 
+nelda2.sub <- nelda2.sub %>% mutate(any.ecav.protest = ifelse(n.events.post >= 1, 1, 0))
 
-size_data_mm_pre <- nelda3.sub.pre %>% group_by(electionid) %>% summarize(median.participants.mm.pre = median(participants_category_ordered, na.rm = T))
-size_data_mm_post <- nelda3.sub.post %>% group_by(electionid) %>% summarize(median.participants.mm.post = median(participants_category_ordered, na.rm = T))
+##Making the assumption that NAs for pre-election protest are zero
+nelda2.sub <- nelda2.sub %>% mutate(n.events.pre = ifelse(is.na(n.events.pre) == T, 0, n.events.pre))
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence.pre = ifelse(is.na(antigov.violence.pre) == T, 0, antigov.violence.pre))
 
+##Making the assumption that NAs for post-election protest are zero
+
+nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post) == T, 0, n.events.post))
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence) == T, 0, antigov.violence))
 
 ```
 
 
-
-## Merge data from nelda3.sub with nelda2.sub
-
-```{r}
-##Combined post data together, then pre data, then both
-mm_data_post_comb <- left_join(count_data_mm_post, size_data_mm_post, by = "electionid")
-mm_data_pre_comb <- left_join(count_data_mm_pre, size_data_mm_pre, by = "electionid")
-
-mm_data_comb <- left_join(mm_data_pre_comb, mm_data_post_comb, by = "electionid")
-
-mm_data_comb <- mm_data_comb %>% rename(NeldaID = electionid)
-
-nelda3.sub <- nelda2.sub %>% left_join(mm_data_comb, by = "NeldaID")  ## Double check to make sure this joining works
-
-
-## Code NAs for number of protests as 0s (these reflect election years recorded in NELDA where there were no protests recorded by MM)
-
-nelda3.sub <- nelda3.sub %>% mutate(n.events.massmob.pre = ifelse(is.na(n.events.massmob.pre)==T, 0, n.events.massmob.pre))
-nelda3.sub <- nelda3.sub %>% mutate(n.events.massmob.post = ifelse(is.na(n.events.massmob.post)==T, 0, n.events.massmob.post))
-
-nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.pre = ifelse(is.na(median.participants.mm.pre)==T & n.events.massmob.pre == 0, 0, median.participants.mm.pre))
-nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.post = ifelse(is.na(median.participants.mm.post)==T & n.events.massmob.post == 0, 0, median.participants.mm.pre))
-
-## Rounding participant median numbers down (removes half-steps)
-
-nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.post = floor(median.participants.mm.post))
-nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.pre = floor(median.participants.mm.pre))
-
-
-```
 
 
 ## Merge with winner share updated
@@ -732,7 +552,6 @@ nelda3.sub <- nelda3.sub %>% mutate(median.participants.mm.pre = floor(median.pa
 ```{r}
 winner.shares <- read.csv(here::here("Data", "amended_vote_shares.csv"))
 nelda2.sub <- nelda2.sub %>% left_join(winner.shares, by = "NeldaID")
-nelda3.sub <- nelda3.sub %>% left_join(winner.shares, by = "NeldaID")
 
 ```
 
@@ -742,8 +561,5 @@ nelda3.sub <- nelda3.sub %>% left_join(winner.shares, by = "NeldaID")
 write.csv(nelda2.sub, here::here("Data", "nelda2_sub.csv"))
 ```
 
-```{r}
-write.csv(nelda3.sub, here::here("Data", "nelda3_sub.csv"))
 
-```
 
