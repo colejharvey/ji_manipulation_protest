@@ -33,7 +33,7 @@ library(pscl)
 library(modelsummary)
 library(MASS)
 
-nelda2.sub <- read.csv(here::here("Data", "nelda2_sub.csv"))
+nelda2.sub <- read.csv(here::here("Data", "nelda2_sub_2022-11-30.csv"))
 
 
 nelda2.sub <- nelda2.sub %>% mutate(legit_no_proc = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol))
@@ -104,7 +104,6 @@ nelda2.sub <- nelda2.sub %>% mutate(particpants_categorical = as.factor(particpa
 
 ## Median particiants (MM) as factor
 
-nelda2.sub <- nelda2.sub %>% mutate(median.participants.mm.post = as.factor(median.participants.mm.post))
 
 ```
 
