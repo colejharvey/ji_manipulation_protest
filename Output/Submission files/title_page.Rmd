@@ -1,0 +1,22 @@
+---
+title: "A missing guardrail: The failure of protest risk to deter election manipulation in non-democracies"
+output:
+    bookdown::pdf_document2: default
+linkcolor: blue
+bibliography: C:/Users/colej/Documents/Research projects/bib_ch.bib
+#biblio-style: "apalike"
+fontsize: 12pt
+link-citations: yes
+toc: false
+csl: C:/Users/colej/Documents/Research projects/ji_manipulation_protest/american-journal-of-political-science.csl
+indent: true
+header-includes: 
+  - \usepackage{booktabs}
+  - \usepackage{setspace}
+abstract: "The risk of mass protest figures prominently in many models of election manipulation, as a deterrent to tampering with elections. Yet election manipulation is common outside liberal democracies, while protest is rare (and successful protest rarer still). Using count data on protest events from 647 elections from 1990 to 2012, this paper argues that the risk to incumbents has been overstated in prior work for two reasons. First, information revealed by election fraud is ambiguous; second, any such information quickly decays once protests do begin. The results show that the level of fraud has no bearing on the number of protests after an election, and is associated with protest initiation only in rare circumstances. This pessimistic finding implies that democracies are more fragile, and non-democracies more robust, than prior work predicts."
+---
+
+
+\begin{center}
+Word count: 9,498
+\end{center}
