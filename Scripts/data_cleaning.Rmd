@@ -42,6 +42,12 @@ nelda <- nelda %>% rename(inc.replaced.prot = nelda41)
 nelda <- nelda %>% rename(preelection_concerns = nelda11)
 nelda <- nelda %>% rename(harass_opp = nelda15)
 nelda <- nelda %>% rename(opp_leaders_prevented = nelda13)
+nelda <- nelda %>% rename(unscheduled_election = nelda6)
+nelda <- nelda %>% rename(inc.run = nelda21)
+nelda <- nelda %>% rename(chosen.successor = nelda22)
+
+
+
 
 
 
@@ -59,7 +65,7 @@ nelda <- nelda %>% mutate(harass_opp = ifelse(nelda3 == "No", 1, ifelse(harass_o
 nelda <- nelda %>% mutate(opp_leaders_prevented = ifelse(nelda3 == "No", "In general", ifelse(opp_leaders_prevented == "yes", "Specifically", ifelse(opp_leaders_prevented == "no", "No", NA))))
 
                           
-                          
+nelda <- nelda %>% mutate(unscheduled_election = ifelse(is.na(unscheduled_election)==T, NA, ifelse(unscheduled_election == "yes" | unscheduled_election == "N/A", 1, 0)))   #"N/A" here refers to no common expectation for election timing                        
           
 
 nelda <- nelda %>% mutate(econ.crisis.nelda = ifelse(econ.crisis.nelda == "yes", 1, ifelse(econ.crisis.nelda == "no", 0, NA)))
@@ -68,7 +74,7 @@ nelda <- nelda %>% mutate(nelda.protests.fraud = ifelse(protests == 0, 0, ifelse
 nelda <- nelda %>% mutate(inc.replaced.prot = ifelse(inc.replaced.prot == "yes", 1, 0))
 nelda <- nelda %>% mutate(new.elections.held = ifelse(new.elections.held == "yes", 1, 0))
 
-
+nelda <- nelda %>% mutate(chosen.successor = ifelse(inc.run == "no" & chosen.successor == "yes", 1, 0))
 
 
 
@@ -80,16 +86,19 @@ Adding a vdem ID to the other packages
 
 Note: the missing values from NELDA are cases not included in VDEM (e.g. Bahamas, Dominica.)
 ```{r}
-nelda <- nelda %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "gwn", destination = "vdem"))
+nelda <- nelda %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "gwn", destination = "vdem", 
+                                                   custom_match = c("345" = "198"))) #Fixes Serbia; only non-match that needs fixing; others are microstates / not in V-Dem
  #Missing matches here look to be countries below the population threshold: some Carib. islands, Monaco, etc.
 lji <- lji %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", 
-                                               destination = "vdem"))
+                                               destination = "vdem",
+                                               custom_match = c("345" = "198"))) #ID code is the same as above
 
 nelda <- nelda %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 lji <- lji %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 vdem.data <- vdem.data %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
 
-ecav <- ecav %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", destination = "vdem"))
+ecav <- ecav %>% mutate(country_id = countrycode(sourcevar = ccode, origin = "cown", destination = "vdem",
+                                                 custom_match = c("345" = "198")))
 
 ```
 
@@ -98,7 +107,7 @@ v2x_polyarchy, v2x_libdem, v2xpartipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_a
 
 The approach below works for lagging variables by group. Next step is to lag all of the above variables, lag LJI variables, and then merge with nelda.
 
-```{r}
+```{r, warning=FALSE}
 vdem.recent <- vdem.data %>% filter(year >= 1944)
 
 vdem.recent <- vdem.recent %>% mutate(elcompindex.m = ifelse(v2xel_frefair == 0, 0, v2x_mpi / v2xel_frefair))
@@ -110,7 +119,6 @@ vdem.recent$reform_positive[vdem.recent$v2jureform_ord == 2 ] <- 1
 
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(v2elintmon.lag = lag(v2elintmon))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(reform_positive.lag = lag(reform_positive))
-vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(v2elirreg.inv.lag = lag(v2elirreg.inv))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(elcompindex.m.1lag = lag(elcompindex.m))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(polyarchy.1lag = lag(v2x_polyarchy))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(libdem.1lag = lag(v2x_libdem))
@@ -156,12 +164,28 @@ vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(civlib.1lag = lag
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(jucon.1lag = lag(v2x_jucon))
 vdem.recent <- vdem.recent %>% group_by(country_id) %>% mutate(legcon.1lag = lag(v2xlg_legcon))
 
-
-
-
-
-
 vdem.recent <- vdem.recent %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
+
+
+## Getting lagged election fraud
+countryids <- data.frame(unique(vdem.recent$country_id))
+lag_with_ids <- data.frame(country_id_year = NA, v2elirreg.inv.lag = NA)
+
+
+for (i in 1:nrow(countryids)){
+  #lag_with_ids <- data.frame(country_id_year = NA, v2elirreg.inv.lag = NA)
+  country <- vdem.recent %>% filter(country_id == countryids[i,1])
+  country <- country %>% filter(is.na(v2elirreg.inv) == F)
+  country <- country %>% mutate(v2elirreg.inv.lag = lag(v2elirreg.inv))
+  lag_with_ids_temp <- country %>% dplyr::select(country_id_year, v2elirreg.inv.lag)
+  lag_with_ids <- bind_rows(lag_with_ids, lag_with_ids_temp)
+}
+lag_with_ids <- lag_with_ids %>% dplyr::select(-COWcode)
+vdem.recent <- vdem.recent %>% left_join(lag_with_ids, by = "country_id_year")
+
+
+
+
 
 
 ##Leading variables for protest after election years
@@ -211,12 +235,13 @@ nelda <- nelda %>% group_by(country_id) %>% mutate(econ.crisis.nelda.1lag = lag(
 #Merging
 nelda2 <- nelda %>% merge(lji %>% dplyr::select(LJI, lji.lag, country_id_year), by = "country_id_year")
 
-nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2elintmon.lag, v2elintmon, v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat, v2xlg_legcon, legcon.1lag, polyarchy.1lag, libdem.1lag, partipdem.1lag, 
+nelda2 <- nelda2 %>% merge(vdem.recent %>% dplyr::select(v2elintmon.lag, v2elintmon, v2eltvrexo, v2elvotlrg, v2elvotsml, v2ellostlg, v2ellostsl, v2ellostsm, v2ellostss, v2ellovtlg, v2ellovtsm, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2x_freexp_altinf, v2x_api, v2x_mpi, v2x_frassoc_thick, v2x_suffr, v2xel_frefair, v2x_elecoff, v2x_liberal, v2x_jucon, v2x_partip, v2x_cspart, v2xeg_eqdr, v2psoppaut, v2jureform, v2jupurge, v2jupoatck, v2jupack, v2juaccnt, v2juhcind, v2juncind, v2mecenefm, e_migdppcln, e_migdpgro, e_miinflat, v2xlg_legcon, legcon.1lag, polyarchy.1lag, libdem.1lag, partipdem.1lag, v2elirreg.inv.lag,
                                                   delibdem.1lag,
                                                   elcompindex.m.1lag,
                                                   opposition.oversight.lag,
                                                   v2elirreg.inv,
                                                   reform_positive.lag,
+                                                  e_regionpol,
                                                   e_mipopula,
                                                   e_miurbani,
                                                   e_miurbpop,
@@ -317,6 +342,7 @@ nelda2 <- nelda2 %>% mutate(taxstate = ifelse(is.na(v2stfisccap_ord) == T, NA, i
 
 ```{r}
 urban <- read.csv(here::here("Data", "urbanization_worldbank.csv"))
+#urban <- urban %>% rename(Country.Name = X...Country.Name)
 test <- urban %>%
   pivot_longer(cols = starts_with("X"),
                names_to = "year")
@@ -328,11 +354,14 @@ library(countrycode)
 
 test <- test %>% mutate(stateid = countrycode(sourcevar = Country.Code, origin = 'iso3c', destination = 'gwc'))
 test <- test %>% rename(urban.pct = value)
-test <- test %>% dplyr::select(year, urban.pct, stateid)
 
-nelda2 <- nelda2 %>% mutate(year = as.character(year))
+test <- test %>% mutate(country_id = countrycode(sourcevar = Country.Code, origin = 'iso3c', destination = 'vdem'))
+test <- test %>% mutate(country_id_year = paste0(country_id, "_", year))
 
-nelda2 <- nelda2 %>% left_join(test, by = c("stateid", "year"))
+test <- test %>% dplyr::select(country_id_year, urban.pct)
+
+
+nelda2 <- nelda2 %>% left_join(test, by = "country_id_year")
 
 ```
 
@@ -366,6 +395,19 @@ ecav <- ecav %>% mutate(antigov.violence =
 ```
 
 
+Coding pro-gov violence from ecav
+
+```{r}
+## Coding pro-government initiation of violence
+
+ecav <- ecav %>% mutate(progov.violence = 
+                          ifelse(EventViolence == 0, 0,
+                                 ifelse(ViolenceInitiator == "-99", NA,
+                                                  ifelse(ViolenceInitiator == ".1" & Actor1Side == 0, 1, 
+                                                  ifelse(ViolenceInitiator == ".2" & Actor2Side == 0, 1,
+                                                         ifelse(ViolenceInitiator == "1.1" & Target1Side == 0, 1,
+                                                                ifelse(ViolenceInitiator == "2.1" & Target2Side == 0, 1, 0)))))))
+```
 
 
 
@@ -405,9 +447,14 @@ ecav.pre <- ecav.pre %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == 
 size_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(median.participants.pre = median(ParticipantNumber, na.rm = T))
 
 
-## Violence
+## Anti-gov Violence
 violence_data_post <- ecav.post %>% group_by(NeldaID) %>% summarize(antigov.violence = sum(antigov.violence, na.rm = T))
 violence_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(antigov.violence.pre = sum(antigov.violence, na.rm = T))
+
+## Pro-gov Violence
+pg_violence_data_post <- ecav.post %>% group_by(NeldaID) %>% summarize(progov.violence = sum(progov.violence, na.rm = T))
+pg_violence_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(progov.violence.pre = sum(progov.violence, na.rm = T))
+
 
 
 
@@ -415,10 +462,14 @@ violence_data_pre <- ecav.pre %>% group_by(NeldaID) %>% summarize(antigov.violen
 ecav_data_post <- left_join(count_data_post, duration_data, by = "NeldaID")
 ecav_data_post <- left_join(ecav_data_post, size_data_post, by = "NeldaID")
 ecav_data_post <- left_join(ecav_data_post, violence_data_post, by = "NeldaID")
+ecav_data_post <- left_join(ecav_data_post, pg_violence_data_post, by = "NeldaID")
+
 
 
 ecav_data_pre <- left_join(count_data_pre, size_data_pre, by = "NeldaID")
 ecav_data_pre <- left_join(ecav_data_pre, violence_data_pre, by = "NeldaID")
+ecav_data_pre <- left_join(ecav_data_pre, pg_violence_data_pre, by = "NeldaID")
+
 
 ecav_data <- left_join(ecav_data_post, ecav_data_pre, by = "NeldaID")
 
@@ -440,7 +491,7 @@ nelda2 <- left_join(nelda2, ecav_data, by = "NeldaID")
 ## Remove closed autoc and lib dem
 
 ```{r}
-nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
+nelda2.sub <- nelda2 %>% filter(v2x_regime > 0) #Note that coding scheme for electoral democracies allows for "some degree of fraud and irregularities but these did not in the end affect the outcome" (v2elfrfair, which is a component of v2x_regime) 
 ```
 
 
@@ -448,7 +499,7 @@ nelda2.sub <- nelda2 %>% filter(v2x_regime == 1 | v2x_regime == 2) #Note that co
 
 ```{r}
 nelda2.sub <- nelda2.sub %>% filter(election_mdy >= "1989-10-04")
-nelda2.test <- nelda2.sub %>% filter(election_mdy <= "2013-01-13")
+nelda2.sub <- nelda2.sub %>% filter(election_mdy <= "2013-01-13")
 ```
 
 
@@ -457,6 +508,8 @@ nelda2.test <- nelda2.sub %>% filter(election_mdy <= "2013-01-13")
 ##Cleaning
 
 nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence)==T, 0, antigov.violence))
+nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(progov.violence)==T, 0, progov.violence))
+
 nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post)==T, 0, n.events.post))
 nelda2.sub <- nelda2.sub %>% mutate(d.events.num = ifelse(is.na(d.events.num)==T, 0, d.events.num))
 #nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(is.na(median.participants)==T, 0, median.participants))
@@ -466,11 +519,15 @@ nelda2.sub <- nelda2.sub %>% mutate(any.ecav.protest = ifelse(n.events.post >= 1
 ##Making the assumption that NAs for pre-election protest are zero
 nelda2.sub <- nelda2.sub %>% mutate(n.events.pre = ifelse(is.na(n.events.pre) == T, 0, n.events.pre))
 nelda2.sub <- nelda2.sub %>% mutate(antigov.violence.pre = ifelse(is.na(antigov.violence.pre) == T, 0, antigov.violence.pre))
+nelda2.sub <- nelda2.sub %>% mutate(progov.violence.pre = ifelse(is.na(progov.violence.pre) == T, 0, antigov.violence.pre))
+
 
 ##Making the assumption that NAs for post-election protest are zero
 
 nelda2.sub <- nelda2.sub %>% mutate(n.events.post = ifelse(is.na(n.events.post) == T, 0, n.events.post))
 nelda2.sub <- nelda2.sub %>% mutate(antigov.violence = ifelse(is.na(antigov.violence) == T, 0, antigov.violence))
+nelda2.sub <- nelda2.sub %>% mutate(progov.violence = ifelse(is.na(progov.violence) == T, 0, progov.violence))
+
 
 ```
 
@@ -493,7 +550,7 @@ nelda2.sub <- nelda2.sub %>% left_join(winner.shares, by = "NeldaID")
 
  - Quick growth after fraud indicates opp believes state is weak
  - Slow or no growth after fraud indicates opp believes state is strong
- - Quick decay after peak indicates state is strong / believed strong
+ - Quick decay after peak indicates state is strong / believed strong (or not--regime is weak and so quickly collapses)
  - Slow decay after peak indicates state is weak / believed weak
  
 The idea here would be:
@@ -520,28 +577,78 @@ The idea here would be:
 ```{r}
 # Example
 
+
+
+
+## Remove things other than protests
+ecav_prot <- ecav %>% filter(str_detect(EventName, "rotest") == T | str_detect(EventName, "ccupation") == T |
+                                  str_detect(EventName, "lockade") == T) #Only captures protests
+```
+
+Replacing NA protest size with average for that wave
+```{r}
 ## Set up holding df
 
-dv_df <- data.frame(NeldaID = NA, prot_intensity = NA, decay_intensity = NA)
+dv_df <- data.frame(NeldaID = NA, avg_size = NA)
 
-## Replace categorical with min value, replace -99s
+## Filter by election and replace -99 with NA for protest size
+ 
+ election_ids <- unique(ecav_prot$NeldaID)
+ecav_prot <- ecav_prot %>% mutate(ParticipantNumber = ifelse(ParticipantNumber == -99, NA, ParticipantNumber))
+ 
+for(i in 1:length(election_ids)){ 
+  ecav_temp <- ecav_prot %>% filter(NeldaID == election_ids[i])  #There is a loop here
+ 
+    ## Remove protests before election
+  ecav_temp <- ecav_temp %>% filter(Date >= Electiondate)
+  if(nrow(ecav_temp) == 0){
+     new_row <- data.frame(NeldaID = election_ids[i], 
+                           avg_size = 0) #No post-election protest
+
+  dv_df[i,] <- new_row
+  print(paste0("No post-election protest for observation ", i, "."))
+  next
+  } else{
+ 
+  new_row <- data.frame(NeldaID = election_ids[i], avg_size = floor(mean(ecav_temp$ParticipantNumber, na.rm = T)))
+
+  dv_df[i,] <- new_row
+  print(paste0("Average size for observation ", i, " completed."))
+  }
+}  
+
+## Merge dv_df back into main dataset
+  
+ecav_prot <- ecav_prot %>% left_join(dv_df, by = "NeldaID")
+  
+
+```
+
+Current to-do: Double-check the output of the size code
+
+```{r}
+## Set up holding df
+
+dv_df <- data.frame(NeldaID = NA, prot_intensity = NA, decay_intensity = NA, max_size = NA, day_max = NA)
+
+
+ecav_prot <- ecav_prot %>% mutate(ParticipantNumber_adj = ifelse(is.na(ParticipantNumber)==T, avg_size, ParticipantNumber))
+ecav_prot <- ecav_prot %>% mutate(ParticipantNumber_adj = ifelse(ParticipantNumber_adj == "NaN", 2, ParticipantNumber_adj)) #Assume NA size defaults to category 2
 
 #ecav_rus <- ecav %>% filter(country == "Russia")   # Filter by country
-ecav <- ecav %>% mutate(ParticipantNumber_num_min = ifelse(ParticipantNumber == 1, 2, 
-                                ifelse(ParticipantNumber == 2, 10, 
-                                       ifelse(ParticipantNumber == 3, 100, 
-                                              ifelse(ParticipantNumber == 4, 1000,
-                                                     ifelse(ParticipantNumber == 5, 10000, 10)))))) #Last 10 here hard-codes any missing participant size as 10
+ecav_prot <- ecav_prot %>% mutate(ParticipantNumber_num_min = ifelse(ParticipantNumber_adj == 1, 5, 
+                                ifelse(ParticipantNumber_adj == 2, 55, 
+                                       ifelse(ParticipantNumber_adj == 3, 550, 
+                                              ifelse(ParticipantNumber_adj == 4, 5500,
+                                                     ifelse(ParticipantNumber_adj == 5, 10000, NA)))))) 
 
 
 ## Filter by election
  
- election_ids <- unique(ecav$NeldaID)
+ election_ids <- unique(ecav_prot$NeldaID)
  
- for(i in 1:length(election_ids)){
- ecav_temp <- ecav %>% filter(NeldaID == election_ids[i])  #There is a loop here
- 
- 
+for(i in 1:length(election_ids)){ 
+  ecav_temp <- ecav_prot %>% filter(NeldaID == election_ids[i])  #There is a loop here
 
 ## Group by date and sum number of participants by date:
 
@@ -556,8 +663,10 @@ ecav <- ecav %>% mutate(ParticipantNumber_num_min = ifelse(ParticipantNumber == 
  ## Remove protests before election
  
  ecav_temp_comb <- ecav_temp_comb %>% filter(date_col >= election_date_temp)
+ 
+ 
   if (nrow(ecav_temp_comb) == 0) {
-    new_row <- data.frame(election_ids[i], NA, NA)
+    new_row <- data.frame(election_ids[i], NA, NA, NA, NA)
     dv_df[i,] <- new_row
     print(paste0("No post-election protests for obseveration ", i, ", election ID", election_ids[i], ","))
     next}  #End loop if zero post-election protests
@@ -566,12 +675,21 @@ ecav <- ecav %>% mutate(ParticipantNumber_num_min = ifelse(ParticipantNumber == 
  
  max_data <-  ecav_temp_comb %>% filter(total == max(total, na.rm = T))
  
-  if (nrow(max_data) > 1) {
+  # Assign NA to NA size
+ if (nrow(max_data)==0){
+    new_row <- data.frame(election_ids[i], NA, NA, NA, NA)
+    dv_df[i,] <- new_row
+    print(paste0("Election observation ", i, " completed. (Note: no size estimate."))
+    next
+ }
+ 
+  if (nrow(max_data) >= 1) {
     prot_intensity <- max_data$total[1] / (1 + as.numeric(ymd(max_data$date_col[1]) - ymd(election_date_temp))) #[1] gets the first peak
     last_peak <- tail(max_data, n = 1)
     decay_intensity <-  last_peak$total / (1 + as.numeric(max(ecav_temp_comb$date_col) - (ymd(last_peak$date_col))))
-    new_row <- data.frame(election_ids[i], prot_intensity, decay_intensity)
-  #new_row <- new_row %>% rename(NeldaID = election_ids.i.)
+    day_max <- as.numeric(ymd(max_data$date_col[1]) - ymd(election_date_temp))
+    new_row <- data.frame(election_ids[i], prot_intensity, decay_intensity, max_data$total[1], day_max)
+  new_row <- new_row %>% rename(max_size = max_data.total.1.)
     dv_df[i,] <- new_row
     print(paste0("Election observation ", i, " completed. (Note: multiple peaks."))
     next
@@ -586,8 +704,10 @@ ecav <- ecav %>% mutate(ParticipantNumber_num_min = ifelse(ParticipantNumber == 
  
  ##Add to holding df
   
-  new_row <- data.frame(election_ids[i], prot_intensity, decay_intensity)
-  #new_row <- new_row %>% rename(NeldaID = election_ids.i.)
+  day_max <- as.numeric(ymd(max_data$date_col[1])) - as.numeric(ymd(election_date_temp))
+  new_row <- data.frame(election_ids[i], prot_intensity, decay_intensity, max_data$total, day_max)
+  new_row <- new_row %>% rename(max_size = max_data.total)
+
   dv_df[i,] <- new_row
   print(paste0("Election observation ", i, " completed."))
 
@@ -598,14 +718,120 @@ ecav <- ecav %>% mutate(ParticipantNumber_num_min = ifelse(ParticipantNumber == 
 nelda2.sub.b <- nelda2.sub %>% left_join( dv_df, by = "NeldaID")
   
 ```  
+Pick up here with fixing this code:
+
+```{r, eval=FALSE}
+dv_df <- data.frame(NeldaID = NA, growth_coef = NA)
+for(i in 1:length(election_ids)){
+ ecav_temp <- ecav_prot %>% filter(NeldaID == election_ids[i])  #There is a loop here
+ 
+###Getting a regression slope for protest size and time
+  ecav_temp_comb <- ecav_temp %>% mutate(date_col = date(Date)) %>%
+    group_by(date_col) %>%
+     summarize(total = sum(ParticipantNumber_num_min))
+  max_date_reg <- ecav_temp_comb %>% filter(total == max(total)) %>%  
+   dplyr::select(date_col)
+ 
+ ecav_temp_reg <- ecav_temp %>% filter(as_date(Date) >= as_date(Electiondate))
+ ecav_temp_reg <- ecav_temp_reg %>% mutate(date_col = date(Date))
+ ecav_temp_reg <- ecav_temp_reg %>% left_join(ecav_temp_comb, by = "date_col")  #Gets totals by date
+ 
+ ecav_temp_reg <- ecav_temp_reg %>% filter(as_date(Date) <= max_date_reg[1,1])
+ ecav_temp_reg <- ecav_temp_reg %>% mutate(date_index = as.numeric(ymd(ecav_temp_reg$Date) - ymd(Electiondate)))
+ if(nrow(ecav_temp_reg) == 0) {
+   new_row <- data.frame(election_ids[i], NA)
+   dv_df[i,] <- new_row
+   print(paste0("No observations for election number ", i, "."))
+   next
+ }
+ if(length(unique(ecav_temp_reg$Date))==1){
+   growth_coef <-  ((ecav_temp_reg$total - 0 )/((ecav_temp_reg$date_index+1)-0))[1] #m = (y2 - y1)/(x2 - x1) #+1 in denominator is a kludge to avoid Inf values for day 0 protests
+   new_row <- data.frame(election_ids[i], growth_coef)
+   dv_df[i,] <- new_row
+   print(paste0("One date observed for election ", i, "."))
+   next
+ } else {
+ 
+ fit <- lm(total ~ 0 + date_index, ecav_temp_reg)
+ sum_table <- summary(fit)
+ growth_coef <- sum_table$coefficients[1]
+  new_row <- data.frame(election_ids[i], growth_coef)
+   dv_df[i,] <- new_row
+   print(paste0("Coefficient estimated for election ", i, "."))
+ }
+ rm(growth_coef)
+}
+
+## Merge dv_df back into main dataset
+  
+nelda2.sub.b <- nelda2.sub.b %>% left_join( dv_df, by = "NeldaID")
+```
+
+```{r}
+### Getting a regression slope for protest decay over time
+# last_date_reg <- ecav_temp_reg %>% filter(Date == max(Date)) %>% slice_head(n=1) %>%
+#   dplyr::select(Date)
+# ecav_temp_reg_decay <- ecav_temp_reg %>% filter(Date >= as_date(max_date_reg$date_col))
+#  ecav_temp_reg_decay <- ecav_temp_reg_deacy %>% mutate(date_index_decay = as.numeric(as_date(ecav_temp_reg_decay$Date) - as_date(max_date_reg$date_col)))
+#  if(length(unique(ecav_temp_reg_deacy$Date)) == 1){
+#    decay_coef <-  ((0-ecav_temp_reg_decay$total)/(1-0))[1] #m = (y2 - y1)/(x2 - x1) =
+#  } else{
+#    fit_decay <- lm(total ~ 0 + date_index_decay, ecav_temp_reg_decay)
+# sum_table_decay <- summary(fit_decay)
+# decay_coef <- sum_table_decay$coefficients[1]
+#  }
+#}
+
+```
+
+
+
+## Coding for prior successful protest in political region
+
+```{r}
+success_cases <- nelda2.sub.b %>% filter(inc.replaced.prot == 1 | nelda35 == "yes") %>% dplyr::select(e_regionpol, year, election_mdy)
+
+## Coding rule here: A successful protest counts in its region for 1 year after the election which sparked it; the wave ends 1 year after the last successful protest in a chain
+
+nelda2.sub.b <- nelda2.sub.b %>% mutate(regional_success_lag = ifelse(e_regionpol == 1 & (election_mdy %within% interval(start = "1990-06-17", end = "1991-06-17") | election_mdy %within% interval(start = "2000-09-24", end = "2001-09-24") | election_mdy %within% interval(start = "2003-11-02", end = "2006-11-06")), 1, 
+                                      ifelse(e_regionpol == 4 & (election_mdy %within% interval(start = "1997-04-13", end = "1998-04-13") | election_mdy %within% interval(start = "1998-05-23", end = "1999-05-23") | election_mdy %within% interval(start = "2000-10-22", end = "2001-10-22") | election_mdy %within% interval(start = "2007-07-22", end = "2008-07-22") | election_mdy %within% interval(start = "2010-11-28", end = "2011-11-28")), 1, 
+                                             ifelse(e_regionpol == 2 & (election_mdy %within% interval(start = "2000-04-09", end = "2001-04-09") | election_mdy %within% interval(start = "2000-05-28", end = "2001-05-28") | election_mdy %within% interval(start = "2006-02-07", end = "2007-02-07")), 1, 
+                                                    ifelse(e_regionpol == 8 & (election_mdy %within% interval(start = "1989-11-22", end = "1990-11-22")  | election_mdy %within% interval(start = "1996-02-15", end = "1997-02-15")), 1, 0)))))
+```
+
+
 
 ## Writing
 
 ```{r}
-write.csv(nelda2.sub, here::here("Data", "nelda2_sub_2023-04-19.csv"))
+write.csv(nelda2.sub.b, here::here("Data", "nelda2_sub_2023-05-30.csv"))
 ```
 
-  
+
+## Adding ERT data for regime duration
+
+```{r, eval=FALSE}
+nelda2.sub <- read.csv(here::here("Data", "nelda2_sub_2023-05-10.csv"))
+ert <- read.csv(here::here("Data", "ert.csv"))
+ert <- ert %>% filter(year > 1988)
+ert.sub <- ert %>% dplyr::select(year, country_id, country_name, reg_start_year)
+ert.sub <- ert.sub %>% mutate(country_id_year = paste(country_id, year, sep = "_"))
+
+## ID numbers are the same because they both use V-dem format
+
+ert.sub <- ert.sub %>% dplyr::select(country_id_year, reg_start_year)
+
+
+nelda2.sub <- nelda2.sub %>% left_join(ert.sub, by = "country_id_year")
+
+## Getting age of regime
+
+nelda2.sub  <- nelda2.sub %>% mutate(regime_age = year - reg_start_year)
+
+write.csv(nelda2.sub, here::here("Data", "nelda2_sub_2023-05-30.csv"))
+
+```
+
 
 ```{r}  
   ## Plotting for visualizing election protest size

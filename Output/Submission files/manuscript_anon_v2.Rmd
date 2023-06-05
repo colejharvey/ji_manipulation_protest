@@ -122,7 +122,7 @@ However, the theory articulated above does *not* expect that the severity of fra
 
 >H6: The number of protest events and the maximum event size are likely to increase with indicators of opposition and civil-society strength.
 
-As a final test of the mechanism outlined in the theory presented here\textemdash that election manipulation offers few clues to regime strength, and thus the course of electoral protests are determined by more structural factors\textemdash the same models will also be applied to the duration of post-election protest waves. Longer protest waves indicate a more even match between the resources and resiliency of the protesters and the capacity and cohesiveness of the regime. It is expected that more severe election fraud will *not* be associated with longer protest waves, as would be predicted if fraud were an indicator of state weakness. Instead, structural factors should again be more influential;   harsh repression should be associated with shorter protest waves, while indicators of opposition and civil-society strength should help keep protest waves alive.^[Note here about excluding successful movements.]
+To further test the mechanism outlined in the theory presented here\textemdash that election manipulation offers few clues to regime strength, and thus the course of electoral protests are determined by more structural factors\textemdash I examine the relationship between fraud and the survival of protest movements in cases where protests began but the incumbent eventually survived. Restricting the sample to these cases allows for a consistent interpretation of results: longer protest waves indicate a more even match between the resources and resiliency of the protesters and the capacity and cohesiveness of the regime, while shorter-lived protest movements are those which were more easily defeated.  In this sub-sample, I would first expect the relationship between election fraud and protest survival to be non-linear with respect to time\textemdash the longer the protest movement survives, the less relevant the fraud signal (such as it is) becomes). Second, it is expected that more severe election fraud will *not* be associated with longer protest waves, as would be predicted if fraud were an indicator of state weakness. Instead, structural factors should again be more influential; indicators of opposition and civil-society strength should help keep protest waves alive.
 
 
 
@@ -238,7 +238,7 @@ nelda2.sub <- nelda2.sub %>% mutate(incumb.status = relevel(incumb.status, ref =
 #Coding as factors
 
 nelda2.sub <- nelda2.sub %>% mutate(presidential = factor(presidential))
-nelda2.sub <- nelda2.sub %>% mutate(inc.termlimit.num = factor(inc.termlimit.num, exclude = NULL))
+#nelda2.sub <- nelda2.sub %>% mutate(inc.termlimit.num = factor(inc.termlimit.num))
 nelda2.sub <- nelda2.sub %>% mutate(rentierstate = factor(rentierstate))
 nelda2.sub <- nelda2.sub %>% mutate(taxstate = factor(taxstate))
 nelda2.sub <- nelda2.sub %>% mutate(unscheduled_election = factor(unscheduled_election))
@@ -278,16 +278,17 @@ nelda2.sub <- nelda2.sub %>% filter(v2x_regime <= 2) #To-do: Extent to include l
 
 ```
 
-These hypotheses are tested using data from three datasets: NELDA [@hyde2012], V-Dem version 11.1 [@vdem11.1], and the Electoral Contention and Violence dataset [@Daxecker2019]. The unit of observation for this study is an election period as recorded in NELDA. This framework prevents selecting on the dependent variable, by capturing both protested and non-protested elections.  I limit the sample by excluding closed autocracies (where no national elections are held). Since the theory of backlash to electoral manipulation could in theory apply to liberal democracies, I include them in the main analysis (as coded by V-Dem).^[The specific variable used is 'v2x_regime'.] As a robustness check for this sampling decision, I also include the main models without liberal democracies in the appendix, with no substantial changes in the outcomes. Finally, the beginning of the date range is limited by the availability of data on protest from ECAV, as discussed below, which ranges from 1990 to 2012. The resulting dataset includes 647 total election-period observations across 109 countries.
-
-## Dependent variables
-
-To capture the *severity of election fraud*, I use the V-Dem measure of intentional election irregularities, a category which includes "double IDs, intentional lack of voting materials, ballot-stuffing, misreporting of votes, and false collation of votes." I operationalize electoral manipulation using this variable, rather than aggregate measures of election integrity, because fraud of this kind is thought to be most likely to trigger protest [@Linebarger2020]---it is often incumbents' tool of last resort [@Sjoberg2016], it can fail to signal strength [@Harvey2020], and it can be more damaging to legitimacy than pre-election manipulation [@birch2011;@Szakonyi2021]. This measure of election integrity should thus serve as a strong test of the protest-oriented model. The variable is used as a dependent variable in the first set of models, and as a potential explanatory variable in the subsequent models of protest number, size, and duration.
-
-ECAV records protests and other contentious actions related to an election, ranging from six months before to three months after the vote (or three months after the final round of a multi-round election). To focus the study on protest, I only include events labeled as protests, occupations, or blockades, excluding acts like shootings, bombings, and coups. ECAV data is the event-day format; to capture the *number of protests* before and after the election, I take the sum number of events recorded in ECAV before and after election day, with election-day protests being counted as post-election. To evaluate hypotheses regarding protest size, I convert ECAV's categorical data on number of participants per event-day to estimate numbers, and take the sum where multiple protests were held on a given day. The ECAV dataset codes protest size as a categorical variable with five levels, ranging from fewer than ten participants to more than 10,000. To deal with this data structure, where the top category has no upper limit, I take the median value of each category, with the exception of the top category. For this category, which has no upper bound, I take the minimum value of 10,000. The variable *maximum protest size* is found by taking the number of estimated protest participants who turned out on a single day.
+These hypotheses are tested using data from three datasets: NELDA [@hyde2012], V-Dem version 11.1 [@vdem11.1], and the Electoral Contention and Violence dataset [@Daxecker2019]. The unit of observation for this study is an election period as recorded in NELDA. This framework prevents selecting on the dependent variable, by capturing both protested and non-protested elections.  I limit the sample by excluding closed autocracies (where no national elections are held). Since the theory of popular backlash to manipulation has largely been articulated in an electoral-democratic context, I exclude liberal democracies from the main analysis.^[The specific variable used is 'v2x_regime'; I limit the sample to those regime-years coded 1 or 2.] As a robustness check for this sampling decision, I also run the main models with data including liberal democracies in the appendix, with no substantial changes in the outcomes. The first set of models, focusing on Hypothesis 1, include all the remaining cases in the dataset. For the subsequent models, focusing on post-election protest, I exclude cases where the incumbent party lost, based on coding in NELDA\textemdash this limits the observations to those that fit the theoretical expectations of protest risk following an election in which the incumbent won, possibly through reliance on election fraud. Finally, the beginning of the date range is limited by the availability of data on protest from ECAV, as discussed below, which ranges from 1989 to 2012. The resulting dataset includes 1110 total election-period observations across 118 countries.
 
 
-The large majority of elections experience no post-election protest: in 1168 of the 1477 elections, no protests are recorded. Figure \@ref(fig:elex-hist) reports the distribution of election fraud across the dataset, as well as protest number and maximum single-day protest size.
+## Dependent variables and modeling strategies
+
+To capture the severity of *election fraud*, I use the V-Dem measure of intentional election irregularities, a category which includes "double IDs, intentional lack of voting materials, ballot-stuffing, misreporting of votes, and false collation of votes." I operationalize electoral manipulation using this variable, rather than aggregate measures of election integrity, because fraud of this kind is thought to be most likely to trigger protest [@Linebarger2020]---it is often incumbents' tool of last resort [@Sjoberg2016], it can fail to signal strength [@Harvey2020], and it can be more damaging to legitimacy than pre-election manipulation [@birch2011;@Szakonyi2021]. This measure of election integrity should thus serve as a strong test of the protest-oriented model. The variable is used as a dependent variable in the first set of models that test H1, and as a potential explanatory variable in the subsequent models of protest number, size, and duration.
+
+ECAV records protests and other contentious actions related to an election, ranging from six months before to three months after the vote (or three months after the final round of a multi-round election). To focus the study on protest, I only include events labeled as protests, occupations, or blockades, excluding acts like shootings, bombings, and coups. ECAV data is the event-day format; to capture the *number of protests* before and after the election, I take the sum number of events recorded in ECAV before and after election day, with election-day protests being counted as post-election. To evaluate hypotheses regarding protest size, I convert ECAV's categorical data on number of participants per event-day to estimate numbers, and take the sum where multiple protests were held on a given day.^[This approach is necessary to avoid conflating days with, for example, five category 1 protests (totaling perhaps 50 participants) and days with a single category 5 protest (totaling more than 10,000).] The ECAV dataset codes protest size as a categorical variable with five levels, ranging from fewer than ten participants to more than 10,000. To deal with this data structure, where the top category has no upper limit, I take the median value of each category, with the exception of the top category. For this category, which has no upper bound, I take the minimum value of 10,000. The variable *maximum protest size* is found by taking the number of estimated protest participants who turned out on a single day.
+
+
+The large majority of elections experience no post-election protest: in `r nelda2.sub %>% filter(n.events.post == 0) %>% nrow()` of the `r nrow(nelda2.sub)` elections, no protests are recorded. Figure \@ref(fig:elex-hist) reports the distribution of election fraud across the dataset, as well as protest number and maximum single-day protest size. As the figure shows, while election fraud is common among this set of regimes, protests are rare, and usually small in number and maximum size when they do occur. This distribution\textemdash with large numbers of zeroes\textemdash is in line with the theoretical proposition that two data-generating processes are at work: the factors that lead to the occurrence of protest may not be the same as those that sustain or intensify it. Consequently, I model the number of protests using negative binomial hurdle regressions. Hurdle models are two-part regressions in which the variation in the dependent variable is assumed to follow two distributions: the probability of obtaining a zero or non-zero outcome is modeled as binomial logit function, while the distribution of the non-zero count variable is modeled (in this case) using the negative binomial function. The logistic portion of the model identifies the factors that make *any protest* more likely to occur; the negative binomial regressions model the count of protests given that protest has begun. Since protest size cannot take on a negative value, it is also modeled as a count variable with a negative binomial distribution in the hurdle models. *Election fraud*, which follows a more normal distribution, is modeled using multilevel models with random intercepts by country.
 
 
 
@@ -311,11 +312,11 @@ plot.combined.hist
 ```{r, include=F}
 incl.vars <- nelda2.sub %>% dplyr::select('Judicial independence' = jucon.1lag, 
                                             'Legislative constraints' = legcon.1lag, 
-                                            'Alternative information' = altinf.1lag, 
+                                            'Alternative information' = altinf.1lag,
+                                          'Liberal democracy index' = libdem.1lag,
                                             'GDP growth rate' = gdpgro.1lag, 
                                             'Civil society openness' = osorg.1lag, 
                                             'Public sector corruption' = pubseccorrup.lag,
-                                            'Economic crisis' = econ.crisis.nelda.1lag,
                                             'National party organization' = natlpartyorg.lag, 
                                              'Election fraud' = v2elirreg.inv, 
                                             'Presidential election' = presidential,
@@ -324,10 +325,10 @@ incl.vars <- nelda2.sub %>% dplyr::select('Judicial independence' = jucon.1lag,
                                             'Urbanization' = urban.pct, 
                                             'Rentier state' = rentierstate,
                                             'Tax state' =  taxstate,
-                                            'Incumbent vote-share' = winner.share.upd, 
-                                            'Median pre-election protest size' = median.participants.pre,
-                                            'Largest protest size' = max_size,
-                                            'Off-schedule election' = unscheduled_election)
+                                            'Winning vote-share' = winner.share.upd, 
+                                            'Number of pre-election protests' = n.events.pre,
+                                            'Off-schedule election' = unscheduled_election,
+                                          'Regional protest diffusion' = regional_success_lag)
 #incl.vars <- incl.vars %>% mutate(v2elintmon = as.numeric(v2elintmon))
 
 
@@ -336,14 +337,14 @@ incl.vars <- nelda2.sub %>% dplyr::select('Judicial independence' = jucon.1lag,
 \singlespace
 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r summary-table, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Summary statistics"}
 library(kableExtra)
 datasummary_skim(incl.vars, output = "kableExtra")  %>%
     kable_styling(font_size = 9, full_width = FALSE)
 ```
 \doublespace
 
-This distribution\textemdash with large numbers of zeroes\textemdash is in line with the theoretical proposition that two data-generating processes are at work: the factors that lead to the occurrence of protest may not be the same as those that sustain or intensify it. Consequently, I model the results using negative binomial hurdle regressions. Hurdle models are two-part regressions in which the variation in the dependent variable is assumed to follow two distributions: the probability of obtaining a zero or non-zero outcome is modeled as binomial logic function, while the distribution of the non-zero count variable is modeled (in this case) using the negative binomial function. The logistic portion of the model identifies the factors that make *any protest* more likely to occur; the negative binomial regressions to model the count of protests given that protest has begun. Since protest size cannot take on a negative value, it is also modeled as a count variable with a negative binomial distribution in the hurdle models.
+
 
 
 
@@ -352,21 +353,24 @@ This distribution\textemdash with large numbers of zeroes\textemdash is in line 
 
 Given that pre-election protest is likely to be a strong predictor of post-election protest\textemdash by indicating strong social networks [@mateo2022], pre-existing opposition groups and civil society capacity [@Bunce2006], and/or popular grievances [@Brancati2016]\textemdash the deterrent logic suggests that non-democratic governments will pull back on election-day fraud when the pre-election environment is characterized by protest [@Rozenas2016b]. While it is possible that pre-election protest may provide an opportunity for incumbents to crack down, creating more space for manipulating the election, more active pre-election protest suggests that opposition capacity is more robust, all else held equal. Moreover, in general, incumbents tend to avoid mass repression in the pre-election phase in favor of targeted harassment of opposition activists [@Bhasin2013]. 
 
-The first set of models test Hypothesis 1, on the relationship between protest risk and fraud. Protest risk is operationalized in three ways. First, the *number of pre-election protests* in ECAV is taken as *prima facie* evidence of a more turbulent and risky election environment\textemdash it indicates greater mobilization capacity in civil society and/or the opposition, and may also indicate an elevated sense of grievance. Second, the repressive capacity of the regime is modeled using the lagged *physical integrity index* for the country-year. In one approach, higher values represent more permissive environments, and should be associated with greater protest risk (and thus reduced fraud). Alternatively, in keeping with the 'murder in the middle' framework, the highest protest risks (and most reduced fraud) might be found at middle values of repression. Finally, the literature on the diffusion of electoral protest holds that successful electoral protest in one country increases the likelihood of electoral protest in similar countries nearby. This diffusion mechanism is modeled using each country's geopolitical region as coded in Teorell et al [-@qog_teorell] in conjunction with binary variables indicating a successful protest movement from NELDA. A 'successful protest' is recorded if a protest movement resulted in either a new election being run or the incumbent stepping down. The *regional diffusion* dummy variable takes on a value of one for all countries in the same region as a successful protest, for elections within one calendar of the successfully overturned election.^[For example, the variable takes on a positive value for elections held in the post-communist region, within one year of the September 24, 2000 election in Serbia that sparked the 'Bulldozer Revolution'. All told there are xx successful electoral protests in the dataset: India 1989, Bulgaria 1990, Bangladesh 1996, Mali 1997, Lesotho 1998, Cote d'Ivoire 2000 and 2010, Peru 2000, Serbia 2000, Georgia 2003, Ukraine 2003-2004, Azerbaijan 2005, Kyrgyzstan 2005, Haiti 2006, and Cameroon 2007]     
+The first set of models test Hypothesis 1, on the relationship between protest risk and fraud. Protest risk is operationalized in three ways. First, the *number of pre-election protests* in ECAV is taken as *prima facie* evidence of a more turbulent and risky election environment\textemdash it indicates greater mobilization capacity in civil society and/or the opposition, and may also indicate an elevated sense of grievance. Second, the repressive capacity of the regime is modeled using the lagged *physical integrity index* for the country-year. In one approach, higher values represent more permissive environments, and should be associated with greater protest risk (and thus reduced fraud). Alternatively, in keeping with the 'murder in the middle' framework [@feinLifeIntegrityViolationsDemocracy1995], the highest protest risks (and most reduced fraud) might be found at middle values of repression; regimes with the most demonstrated repressive capacity deter potential challengers from taking to the streets in the first place, and the least repressive states defuse protest through accommodation [@pierskallaProtestDeterrenceEscalation2010;@mooreRepressionDissentSubstitution2000]. I measure repressive capacity using the *physical integrity* index from V-Dem, lagged one year. Higher values for this variable indicate greater freedom from torture and political killing. I also include the variable's square term to account for the 'murder in the middle' framework. The physical integrity variables are expected to be explanatory in models of protest, but are important control variables in the models of election fraud. Since repressive capacity helps influence protest in expectation [@Ritter2016], incumbents that are more confident of deterring protest in advance should be more willing to engage in fraud under the protest-deterrent model of manipulation.
+
+Finally, the literature on the diffusion of electoral protest holds that successful electoral protest in one country increases the likelihood of electoral protest in similar countries nearby. This diffusion mechanism is modeled using each country's geopolitical region as coded in Teorell et al [-@qog_teorell] in conjunction with binary variables indicating a successful protest movement from NELDA. A 'successful protest' is recorded if a protest movement resulted in either a new election being run or the incumbent stepping down. The *regional diffusion* dummy variable takes on a value of one for all countries in the same region as a successful protest, for elections within one calendar year of the successfully overturned election.^[For example, the variable takes on a positive value for elections held in the post-communist region, within one year of the September 24, 2000 election in Serbia that sparked the 'Bulldozer Revolution'. All told there are 15 successful electoral protests in the dataset: India 1989, Bulgaria 1990, Bangladesh 1996, Mali 1997, Lesotho 1998, Cote d'Ivoire 2000 and 2010, Peru 2000, Serbia 2000, Georgia 2003, Ukraine 2003-2004, Azerbaijan 2005, Kyrgyzstan 2005, Haiti 2006, and Cameroon 2007.]     
 
 The models of protest quantity, size, and duration incorporate several potential explanatory variables, including the *election fraud* variable described above. The *lagged GDP growth rate*, taken from V-Dem, is used to capture economic grievances: lower GDP growth rates, especially negative ones, should be expected to increase citizens' sense of grievance. The winning party's *vote-share* is also taken from the V-Dem dataset.\footnote{This variable has considerable missingness, which I reduced in part by updating missing values in V-Dem using data from Wikipedia and Psephos.} The deterrence model suggests that closer elections with more severe fraud should be more likely to generate protest. Finally, the theory proposed here suggests that structural conditions\textemdash in particular, the state's repressive capacity\textemdash should be more influential for protest dynamics.
 
-I measure repressive capacity using the *physical integrity* index from V-Dem, lagged one year. Higher values for this variable indicate greater freedom from torture and political killing. I also include the variable's square term to account for the 'murder in the middle' framework. The physical integrity variables are expected to be explanatory in models of protest, but are important control variables in the models of election fraud. Since repressive capacity helps influence protest in expectation [@Ritter2016], incumbents that are more confident of deterring protest in advance should be more willing to engage in fraud under the protest-deterrent model of manipulation.
 
-Here I expect to see support for the so-called 'more murder in the middle' framework [@feinLifeIntegrityViolationsDemocracy1995], in which the regimes with the most demonstrated repressive capacity deter potential challengers from taking to the streets in the first place, and the least repressive states defuse protest through accommodation [@pierskallaProtestDeterrenceEscalation2010;@mooreRepressionDissentSubstitution2000].
+
 
 ## Control variables
 
 
-Several control variables are included, which could be common causes for both the severity of election manipulation and protest. To help control for the underlying mobilizational capacity, which likely affects incumbents' decision to manipulate and the latent risk of protest, I include lagged indicators of government *control over civil society* (the 'v2cseeorgs' variable from V-Dem), the proportion of national political parties with *permanent party organizations* (V-Dem's 'v2psorgs'), and the available of *alternative sources of information*. Since urban areas can make electoral manipulation more difficult [@ziblatt2009;@larreguy2016parties] while also making protest more likely [@Wallace2013a], I also include data on *urbanization* taken from the United Nations [@DepartmentofEconomicandSocialAffairsPopulationDivision2019]. Finally, all models include measures of *judicial constraints* and  *legislative constraints* on the executive, V-Dem variables which captures the extent to which the judicial and legislative bodies in the country act independently in practice to limit executive power. 
+Several control variables are included, which could be common causes for both the severity of election manipulation and protest. To help control for the underlying mobilizational capacity, which likely affects incumbents' decision to manipulate and the latent risk of protest, I include lagged indicators of government *control over civil society* (the 'v2cseeorgs' variable from V-Dem), the proportion of national political parties with *permanent party organizations* (V-Dem's 'v2psorgs'), and the available of *alternative sources of information*. Since urban areas can make electoral manipulation more difficult [@ziblatt2009;@larreguy2016parties] while also making protest more likely [@Wallace2013a], I also include data on *urbanization* taken from the United Nations [@DepartmentofEconomicandSocialAffairsPopulationDivision2019]. All models include measures of *judicial constraints* and  *legislative constraints* on the executive, V-Dem variables which captures the extent to which the judicial and legislative bodies in the country act independently in practice to limit executive power. To capture the overall level of pre-election protection for rights associated with liberal democracy, I include the lagged *liberal democracy index* from V-Dem. 
 
 
-Finally, several binary control variables are included. First, a variable from NELDA is used to indicate *presidential* elections, since these may include both higher levels of manipulation [@Simpser2011] and a greater risk of protest. Next, a variable from NELDA indicates if the chief executive is *term limited* during the election at hand. This variable is included since incumbents running up against constitutional term limits can pose major challenges for the unity of the regime, possibly leading to fractured manipulation efforts and post-election protest [@hale_patronal_2014]. Finally, I include dummy variables that provide a categorical evaluation of state capacity. These are taken from the ordinal version of the V-Dem variable "state source of fiscal revenue" (v2stfisccap). If the V-Dem data codes a state as not capable of raising revenue or primarily relying on loans and foreign aid, I code it as a *weak state*. If the state is described as primarily relying on resource rents and expropriation, I code it is a *rentier state*. States that rely primarily on taxes on property or economic transactions are coded as *tax states*. This distinction is relevant since access to natural resource rents may both make protest less likely and repression more effective [@Girod2018]. Lastly, since strong non-democratic governments may be able to adjust the electoral calendar strategically (to affecting both election manipulation and protest risk), I include a variable from NELDA that indicates *off-schedule elections*. Figure 2 shows summary statistics for all of these variables. Lastly, a binary variable from NELDA indicates elections in which *incumbents lost*; I expect that protest will be less likely when this variable takes a value of one.  To address concerns about multicollinearity, I present models in the appendix (page 25) that exclude control variables associated with pre-election protest.
+Finally, several binary control variables are included. First, a variable from NELDA is used to indicate *presidential* elections, since these may include both higher levels of manipulation [@Simpser2011] and a greater risk of protest. Next, a variable from NELDA indicates if the chief executive is *term limited* during the election at hand. This variable is included since incumbents running up against constitutional term limits can pose major challenges for the unity of the regime, possibly leading to fractured manipulation efforts and post-election protest [@hale_patronal_2014]. Finally, I include dummy variables that provide a categorical evaluation of state capacity. These are taken from the ordinal version of the V-Dem variable "state source of fiscal revenue" (v2stfisccap). If the V-Dem data codes a state as not capable of raising revenue or primarily relying on loans and foreign aid, I code it as a *weak state*. If the state is described as primarily relying on resource rents and expropriation, I code it is a *rentier state*. States that rely primarily on taxes on property or economic transactions are coded as *tax states*. This distinction is relevant since access to natural resource rents may both make protest less likely and repression more effective [@Girod2018]. Lastly, since strong non-democratic governments may be able to adjust the electoral calendar strategically (to affecting both election manipulation and protest risk), I include a variable from NELDA that indicates *off-schedule elections*.   Figure \@ref(fig:summary-table) shows summary statistics for all of these variables. To address concerns about multicollinearity, I present models in the appendix (page 25) that exclude control variables associated with pre-election protest.
+
+
 
 
 # Results
@@ -374,31 +378,45 @@ Finally, several binary control variables are included. First, a variable from N
 ## Pre-election protest and election-day fraud
 
 
-The results of these models are not promising for argument that protest risk deters election manipulation. First, Hypothesis 1 is not supported in Models 1 and 2 in Table  \@ref(tab:manipdv) \textemdash the coefficient on *pre-election protest* is positive and significant. The model predicts that each additional pre-election protest event is associated with an **increase** in the fraud measure of 0.008. This is a very small effect, given that the dependent variable ranges from `r min(nelda2.sub$v2elirreg.inv, na.rm = T)` to `r max(nelda2.sub$v2elirreg.inv, na.rm = T)`. An increase from zero to five protest events results in a predicted increase in fraud of roughly three percent of a standard deviation. While this is a small effect, it runs counter to the expectations of the deterrence logic. And the effect may be sizable in extreme circumstances. For example, pre-election protest in the 99th percentile is associated with an increase of `r (as.numeric(quantile(nelda2.sub$n.events.pre, probs = .99)))*.008`, about one-fifth of a standard deviation. This suggests that the level of election manipulation, rather than being deterred by a highly contentious environment, may be deployed to make up for anticipated poor election results.   
+The results of these models are not promising for argument that protest risk deters election manipulation. First, Hypothesis 1 is not supported in the models shown in Table  \@ref(tab:manipdv). Models 1 through 5 apply different measures of pre-election protest risk; all of them behave contrary to the standard expectation in the literature. In Model 1, the number of pre-election protests is associated with an increase in election-day fraud; this effect is unchanged in Model 5, where *liberal democracy index* replaces other indicators of political openness. the coefficient on *pre-election protest* is positive and significant. While the effect is small, it runs counter to the expectations of the deterrence logic. A similar effect is found for *diffusion*; recent successful protest in a nearby country is also associated with a small increase in expected fraud. This suggests that the level of election manipulation, rather than being deterred by a highly contentious environment, may be deployed to make up for anticipated poor election results.
+
+Model 2 indicates that fraud declines as societies become less repressive; an intuitive finding. However, Model 3 shows that fraud first increases with physical integrity, but then declines. In other words, fraud is lowest on the extremes of repressive capacity\textemdash where repression is severe and where it is most limited. This is contrary to the expectation that a higher risk of protest is associated with reduced fraud.     
 
 \newpage
 
 \singlespace
 
 ```{r manipdv, echo=FALSE}
-m1 <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential + libdem.1lag + urban.pct + rentierstate + taxstate + n.events.pre  +  unscheduled_election  + (1 | stateid), data = nelda2.sub) 
+m1 <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate + n.events.pre  +  unscheduled_election  + (1 | stateid), data = nelda2.sub) 
 
 #summary(m1)
 
-m1a <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential + libdem.1lag + urban.pct + rentierstate + taxstate +  unscheduled_election + regional_success_lag + (1 | stateid), data = nelda2.sub) 
+m1a <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate +  unscheduled_election + regional_success_lag + (1 | stateid), data = nelda2.sub) 
 #summary(m1a)
 
-m1b <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag  + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   + presidential   +  libdem.1lag + urban.pct + rentierstate + taxstate + physinteg.1lag +  unscheduled_election + (1 | stateid), data = nelda2.sub) 
+m1b <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag  + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   + presidential   +   urban.pct + rentierstate + taxstate + physinteg.1lag +  unscheduled_election + (1 | stateid), data = nelda2.sub) 
 
 #summary(m1b)
 
-m1c <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential + libdem.1lag + urban.pct + rentierstate + taxstate  + physinteg.1lag + physintlag.sq + unscheduled_election  + (1 | stateid), data = nelda2.sub) 
+m1c <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate  + physinteg.1lag + physintlag.sq + unscheduled_election  + (1 | stateid), data = nelda2.sub) 
 #summary(m1c)
 
+m1 <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate + n.events.pre  +  unscheduled_election  + (1 | stateid), data = nelda2.sub) 
+
+#summary(m1)
+
+m1a <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate +  unscheduled_election + regional_success_lag + (1 | stateid), data = nelda2.sub) 
+#summary(m1a)
+
+m1b <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag  + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   + presidential   +   urban.pct + rentierstate + taxstate + physinteg.1lag +  unscheduled_election + (1 | stateid), data = nelda2.sub) 
+
+#summary(m1b)
+
+m1d <- lmer(v2elirreg.inv ~  libdem.1lag + gdpgro.1lag +    presidential +  urban.pct + rentierstate + taxstate  +  unscheduled_election + n.events.pre  + (1 | stateid), data = nelda2.sub) 
+#summary(m1d)
 
 
-
-modelsummary(c(m1, m1b, m1c, m1a), output = "kableExtra",  stars = T, gof_omit = c("R2|RMSE"), title = 'Random-intercept multilevel model of election-day fraud', coef_rename = 
+modelsummary(c(m1, m1b, m1c, m1a, m1d), output = "kableExtra",  stars = T, gof_omit = c("R2|RMSE"), title = 'Random-intercept multilevel model of election-day fraud', coef_rename = 
                c("jucon.1lag" = "Judical independence (lag)", "legcon.1lag" = "Leg. constraints (lag)", 
                  "gdpgro.1lag" = "GDP growth rate (lag)", "altinf.1lag" = "Alternative info. (lag)", 
                  "osorg.1lag" = "Civil soc. openness (lag)", "econ.crisis.nelda.1lag1" = "Economic crisis", 
@@ -414,44 +432,44 @@ modelsummary(c(m1, m1b, m1c, m1a), output = "kableExtra",  stars = T, gof_omit =
 ## Election-day fraud and protest risk
 
 ```{r models-hurdle-mm, warning = FALSE, message = FALSE, include = F}
-model.n.novoteshare.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~  jucon.1lag + legcon.1lag + altinf.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
+model.n.novoteshare.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~  jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.n.novoteshare.hurd.mm)
 
-model.n.base.hurd.mm <- glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + altinf.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
+model.n.base.hurd.mm <- glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
                                ziformula=~.,
                               data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.n.base.hurd.mm)
 
-model.n.base2.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~  jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
+model.n.base2.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~  jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
                                           zi = ~.,
                                           family= nbinom2,
                                           data = nelda2.sub %>% filter(inc.lose == "0"))
 summary(model.n.base2.hurd.mm)
 
-model.n.griev.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+model.n.griev.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.n.griev.hurd.mm)
 
 
-model.n.griev2.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+model.n.griev2.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.n.griev2.hurd.mm)
 
-model.n.griev3.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + altinf.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag  ,
+model.n.griev3.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag  ,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.n.griev3.hurd.mm)
 
-model.n.repr.hurd <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + altinf.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv  +  physinteg.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
+model.n.repr.hurd <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv  +  physinteg.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
@@ -462,86 +480,30 @@ summary(model.n.repr.hurd)
 
 
 
-```{r, include=FALSE}
-library(survival)
-library(ggsurvfit)
-nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(d.events.num > 0, 1, NA))
-nelda2.sub <- nelda2.sub %>% mutate(fraud_level = ifelse(v2elirreg.inv >= (.98 + .97), "High",
-                                                            ifelse(v2elirreg.inv <= (.98 - .97), "Low", "Moderate")))
 
-nelda2.sub.km <- nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0)
-
-
-km <-  with(nelda2.sub.km, Surv(d.events.num, surv_status))
-
-survfit2(Surv(d.events.num, surv_status) ~ 1, data = nelda2.sub.km %>% filter(d.events.num < 300)) %>% 
-  ggsurvfit() +
-#   add_confidence_interval() +
-  labs(
-    x = "Days",
-    y = "Overall survival probability"
-  )
-
-survfit2(Surv(d.events.num, surv_status) ~ fraud_level, data = nelda2.sub.km %>% filter(d.events.num < 300)) %>% 
-  ggsurvfit() +
-#   add_confidence_interval() +
-  labs(
-    x = "Days",
-    y = "Overall survival probability"
-  )
-
-cox1 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag , data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0))
-summary(cox1)
-
-cz <- cox.zph(cox1, transform = "identity")
-print(cz)
-plot(cz) # The points on the plot are residuals of v2elirreg.inv (and other vars) based on hte predicted value of X and time t. The line shows the estimated value of the coefficient on variable X at time t compared to its baseline. You want it to be zero for consistent effects over time. V2elirreg.inv is positive for about two weeks early on. The substantive effect of this can be shown by taking two values of v2elirreg.inv (i.e. first and third quartile), taking the difference, and finding exp(coefficient_residual * difference). The result shows here that protests in states in the third quartile of fraud are exp(.75*1.4) = 2.86 times more likely to die than those in the first quartile during those couple weeks. So this suggests that if protests survive the first week or two, the state's capacity starts to kick in?
-
-sandbox_data <- survSplit(Surv(d.events.num, surv_status) ~ 
-                      jucon.1lag + legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + fraud_level  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
-                      data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0), cut = c(2), episode = "tgroup")
-
-
-cox1.2 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + fraud_level*(as.factor(tgroup))  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, data = sandbox_data)
-summary(cox1.2)
-
-
-
-
-
-cox2 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0))
-summary(cox2)
-
-cox3 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag , data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0))
-summary(cox3)
-
-cox4 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0))
-summary(cox4)
-
-```
 
 
 
 ```{r models-hurdle-size, warning = FALSE, message = FALSE, include = F}
-model.size.novoteshare <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+model.size.novoteshare <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.size.novoteshare)
 
-model.size.base <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   v2elirreg.inv + winner.share.upd + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+model.size.base <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   v2elirreg.inv + winner.share.upd + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.size.base)
 
-model.size.base2 <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+model.size.base2 <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
 summary(model.size.base2)
 
-model.size.griev <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
+model.size.griev <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)
@@ -555,9 +517,9 @@ summary(model.size.griev)
 ```{r zero-model-table, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 
 models_t1 <- list()
-models_t1[['Model 3']] <- model.n.base.hurd.mm
-models_t1[['Model 4']] <- model.n.base2.hurd.mm
-models_t1[['Model 5']] <- model.n.griev.hurd.mm
+models_t1[['Model 6']] <- model.n.base.hurd.mm
+models_t1[['Model 7']] <- model.n.base2.hurd.mm
+models_t1[['Model 8']] <- model.n.griev.hurd.mm
 #models_t1[['Model 5']] <- m_duration_count
 #models_t1[['Model 6']] <- model.d.base2.hurd
 #models_t1[['Model 7']] <- model.d.griev.hurd
@@ -569,7 +531,7 @@ t1a <- huxreg(models_t1, tidy_args = c("component" = "zi"), borders = 0, number_
 theme_compact(t1a, header_rows = TRUE, header_cols = FALSE)
 
 
-t1b <- huxreg(models_t1, tidy_args = c("component" = "zi"), borders = 0, number_format = 2, omit_coefs = c("(Intercept)", "jucon.1lag" , "legcon.1lag" , "gdpgro.1lag" , "altinf.1lag" , "pubseccorrup.lag" , "osorg.1lag" , "econ.crisis.nelda.1lag1" , "natlpartyorg.lag" , "v2elirreg.inv" , "pubseccorrup.lag"   , "presidential1" , "inc.termlimit.num1"  ,  "physinteg.1lag" , "physintlag.sq" , "urban.pct")) %>% set_caption("Table 3 cont.: Zero-inflated models of protest initiation")
+t1b <- huxreg(models_t1, tidy_args = c("component" = "zi"), borders = 0, number_format = 2, omit_coefs = c("(Intercept)", "jucon.1lag" , "legcon.1lag" , "gdpgro.1lag" , "altinf.1lag" , "libdem.1lag", "pubseccorrup.lag" , "osorg.1lag" , "econ.crisis.nelda.1lag1" , "natlpartyorg.lag" , "v2elirreg.inv" , "pubseccorrup.lag"   , "presidential1" , "inc.termlimit.num1"  ,  "physinteg.1lag" , "physintlag.sq" , "urban.pct")) %>% set_caption("Table 3 cont.: Zero-inflated models of protest initiation")
 
 
 theme_compact(t1b, header_rows = TRUE, header_cols = FALSE)
@@ -578,12 +540,12 @@ theme_compact(t1b, header_rows = TRUE, header_cols = FALSE)
 
 
 models_t2 <- list()
-models_t2[['Model 3']] <- model.n.base.hurd.mm
-models_t2[['Model 4']] <- model.n.base2.hurd.mm
-models_t2[['Model 5']] <- model.n.griev.hurd.mm
-models_t2[['Model 6']] <- model.size.base
-models_t2[['Model 7']] <- model.size.base2
-models_t2[['Model 8']] <- model.size.griev
+models_t2[['Model 6']] <- model.n.base.hurd.mm
+models_t2[['Model 7']] <- model.n.base2.hurd.mm
+models_t2[['Model 8']] <- model.n.griev.hurd.mm
+models_t2[['Model 9']] <- model.size.base
+models_t2[['Model 10']] <- model.size.base2
+models_t2[['Model 11']] <- model.size.griev
 
 
 t2a <- huxreg(models_t2, tidy_args = c("component" = "cond"), borders = 0, number_format = 2, stars = c(`***` = 0.001, `**` = 0.01, `*` = 0.05, `+` = .1), omit_coefs = c("rentierstate1", "taxstate1", "n.events.pre", "unscheduled_election1", "inc.lose1", "v2elirreg.inv:winner.share.upd", "gdpgro.1lag:v2elirreg.inv"), statistics = character(0)) %>% set_caption("Table 4: Negative binomial models of number and duration of protests") %>% insert_row("", "", "Number", "", "", "Size", "", after = 0)
@@ -592,7 +554,7 @@ t2a <- huxreg(models_t2, tidy_args = c("component" = "cond"), borders = 0, numbe
 theme_compact(t2a, header_rows = TRUE, header_cols = FALSE)
 
 
-t2b <- huxreg(models_t2, tidy_args = c("component" = "cond"), borders = 0, number_format = 2, stars = c(`***` = 0.001, `**` = 0.01, `*` = 0.05, `+` = .1), omit_coefs = c("(Intercept)", "jucon.1lag" , "legcon.1lag" , "gdpgro.1lag" , "altinf.1lag" , "pubseccorrup.lag" , "osorg.1lag" , "econ.crisis.nelda.1lag1" , "natlpartyorg.lag" , "v2elirreg.inv" , "pubseccorrup.lag"   , "presidential1" , "inc.termlimit.num1"  ,  "physinteg.1lag" , "physintlag.sq" , "urban.pct")) %>% set_caption("Table 4 cont.: Negative binomial models of number and duration of protests") %>% insert_row("", "", "Number", "", "", "Size", "", after = 0)
+t2b <- huxreg(models_t2, tidy_args = c("component" = "cond"), borders = 0, number_format = 2, stars = c(`***` = 0.001, `**` = 0.01, `*` = 0.05, `+` = .1), omit_coefs = c("(Intercept)", "jucon.1lag" , "legcon.1lag" , "gdpgro.1lag" , "altinf.1lag" , "libdem.1lag",  "pubseccorrup.lag" , "osorg.1lag" , "econ.crisis.nelda.1lag1" , "natlpartyorg.lag" , "v2elirreg.inv" , "pubseccorrup.lag"   , "presidential1" , "inc.termlimit.num1"  ,  "physinteg.1lag" , "physintlag.sq" , "urban.pct")) %>% set_caption("Table 4 cont.: Negative binomial models of number and duration of protests") %>% insert_row("", "", "Number", "", "", "Size", "", after = 0)
 
 
 theme_compact(t2b, header_rows = TRUE, header_cols = FALSE)
@@ -616,9 +578,11 @@ theme_compact(t2b, header_rows = TRUE, header_cols = FALSE)
 
 \doublespace
 
-The second set of models challenge the idea that more severe electoral manipulation is associated with an increased risk of anti-government protest, except under extraordinary circumstances. Beginning with the zero-inflation portion of the hurdle models, which model the likelihood of *no* protest occurring after the election, the standalone coefficient for election fraud is not significant in Model XX, nor are the interaction coefficients in Models XX and XX. Marginal effects plots [include XX] show that there are no significant effects across values of *winner's vote share* or *lagged GDP growth*. The most consistently significant relationship is the negative coefficient for *presidential elections*; this indicates that protest initiation is more likely after a presidential election. 
+The second set of models challenge the idea that more severe electoral manipulation is associated with an increased risk of anti-government protest. Beginning with the zero-inflation portion of the hurdle models in Table \@ref(tab:zero-model-table), which model the likelihood of *no* protest occurring after the election, the standalone coefficient for election fraud is not significant in Model 6. A marginal effects plot in the appendix [include XX] shows that there are no significant effect across values of *lagged GDP growth*.  
 
-While more fraudulent elections are associated with an increasing risk of protest as margins of victory shrink, this increase is not statistically  significant for typical values of manipulation. In the bottom panel of Figure  \@ref(fig:margin-prob-fig), typical values for low and high levels of fraud are used (one standard deviation below and above the mean, respectively). In this lower panel, the increased risk of protest in the high-fraud scenario is not statistically distinguishable from the low-fraud scenario. It is only when comparing extreme values, as in the top panel where the minimum and maximum values for election fraud are used, that the increase in risk becomes significant. It is also worth noting that the inclusion of the interaction term does not improve the fit of the model compared to the baseline Model 2. In summary, it appears that though the strategic logic of protest can be detected\textemdash protest appears more likely when fraud is high and winning margins low\textemdash this pattern only emerges in unusual scenarios. This finding, where the relationship become fraud and protest is only visible at the margins, is similar to that observed in Model 1 above.
+More fraudulent elections do appear associated with an increasing risk of protest initiation as margins of victory shrink, as shown in the top panel of Figure  \@ref(fig:margin-prob-fig). Here, typical values for low and high levels of fraud are used (one standard deviation below and above the mean, respectively). The top panel shows that more fraudulent elections are associated with a significantly higher risk of protest initiation, but only when winning vote-shares are very small. 
+
+
 
 
 
@@ -637,22 +601,22 @@ nelda2.sub <- nelda2.sub %>% mutate(no_size = ifelse(max_size == 0, 1, 0))
 
 
 
-model.margin.binary_n <- glm(no_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+model.margin.binary_n <- glm(no_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
 summary(model.margin.binary_n)
 
-model.margin.binary_size <- glm(no_size ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+model.margin.binary_size <- glm(no_size ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag + pubseccorrup.lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
 summary(model.margin.binary_size)
 
 
-model.binary.griev1_n <- glm(no_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+model.binary.griev1_n <- glm(no_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
 summary(model.binary.griev1_n)
 
-model.binary.griev1_size <- glm(no_size ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+model.binary.griev1_size <- glm(no_size ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
 summary(model.binary.griev1_size)
 
 
 
-model.binary.repr_n <- glm(no_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + physinteg.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+model.binary.repr_n <- glm(no_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + physinteg.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
 summary(model.binary.repr_n)
 
 ## Plots
@@ -663,7 +627,7 @@ summary(model.binary.repr_n)
 #plot_binary_margin_max <- plot_binary_margin_max +  labs(x = "", y = "Predicted probability", title = "Predicted probability of any protest", color = "Election fraud") + theme_bw()
 
 plot_binary_margin_typ_n <- sjPlot::plot_model(model.margin.binary_n, type = "pred", terms = c("winner.share.upd [all]", "v2elirreg.inv [-.45, 1.78]"))
-plot_binary_margin_typ_n <- plot_binary_margin_typ_n +  labs(x = "Incumbent vote-share", y = "Predicted probability", title = "", color = "Election fraud") + theme_bw()
+plot_binary_margin_typ_n <- plot_binary_margin_typ_n +  labs(x = "Incumbent vote-share", y = "Predicted probability", title = "Predicted probability of no protest", color = "Election fraud") + theme_bw()
 
 
 plot_binary_margin_typ_size <- sjPlot::plot_model(model.margin.binary_size, type = "pred", terms = c("winner.share.upd [all]", "v2elirreg.inv [-.45, 1.78]"))
@@ -714,14 +678,10 @@ plot.combined.prob
 
 \doublespace
 
-Turning to the models of number of protest events shown in Table \@ref(tab:zero-model-table-count), Model 2\textemdash which includes no interaction terms\textemdash shows no significant relationship between fraud and protest in the count portions of the hurdle regression. Similarly, none of the three models that include interaction terms yield a significant relationship between fraud, the conditional variable, and number of protest events. Model 3 shows no significant interaction effect for fraud and winning vote-share on quantity of protest. Figure \@ref(fig:n-protests-margin) shows the marginal effect of election fraud at varying levels of winning vote-share, holding other variables constant at their means (continuous variables) or modes (categorical variables). The high and low levels of fraud in the plot represent one standard deviation above and below the mean, respectively. As the figure shows, the predicted number of post-election protests is somewhat higher in the high fraud condition when winning margin is low, but this relationship is not statistically significant.  
-
-Neither economic crises nor public sector corruption is associated with a significant marginal effect for typical levels of election fraud on protest quantity, as Figures \@ref(fig:n-protests-crisis) and \@ref(fig:n-protests-corrupt) show.\footnote{Figures demonstrating minimum and maximum values for fraud are shown in the appendix (page 5); they also indicate no significant relationship.} In fact, more fraudulent elections appear to be associated with *fewer* incidents of protest during periods of economic crisis, though this distinction is not statistically significant at the p < .05 level. 
+Turning to the models of number and size of protest events, conditional on protest initiation, shown in Table \@ref(tab:zero-model-table-count). Models 6 and 9\textemdash which includes no interaction terms\textemdash show no significant relationship between fraud and and the number or maximum size of protest events. The bottom panel of Figure \@ref(fig:n-protests-margin) shows the marginal effect of election fraud on the number of protests, given varying levels of winning vote-share, holding other variables constant at their means (continuous variables) or modes (categorical variables). As the figure shows, there is no statistically significant difference in the expected number of protests. No significant effects are found for fraud and GDP growth in Models 8 or 11. Nor is there a significant effect for fraud on protest size, conditional on margin of victory, as discussed below.
 
 
-Altogether, the argument that election fraud increases the risk of protest initiation is mixed. Hypothesis 1 is weakly supported: pre-election protest is associated with reduced election-day fraud, but the substantive effect of this relationship is minimal. Hypothesis 2 is also weakly supported; there is a significant and sizable association between election fraud and protest initiation when the ruling party's winning margin is low, but only at extremely low and high values of fraud. Support for Hypothesis 3 is mixed\textemdash fraud severity is not associated with increased protest risk during economic crises, though there is a significant and sizable increase in the marginal effect as public sector corruption increases. Election fraud appears to be associated with a higher risk of protest initiation, but generally in unusual scenarios\textemdash when comparing a highly fraudulent to a largely clean elections when the incumbent's margin of victory is quite low, for example\textemdash or with meager substantive effect.
-
-However, even this mixed finding likely presents too optimistic a picture for the protest-deterrent model of election. fraud. The count results from the hurdle regressions show no effect for election fraud across any of the models, alone or in interaction. Elections that were more fraudulent are not associated with more numerous protest. Even when protests are initiated\textemdash a relatively rare event in the first place\textemdash the size of a protest wave is not influenced by the degree of fraud perpetrated by the ruling party. In turn, this suggests two pessimistic interpretations of fraud-protest dynamic. First, protest may simply be less damaging to ruling parties than is regularly assumed in theories of election manipulation. Faced with a nascent protest movement, ruling parties are generally able to contain, co-opt, or repress them\textemdash regardless of the severity of election fraud. An even more troubling implication would suggest that the protest-manipulation logic, rather than serving as a deterrent, creates perverse incentives to manipulate as much as possible. If ruling parties do indeed seek to avoid protest, but manipulating heavily does not come with a cost in the number of post-election protests, ruling parties have an incentive fraudulently inflate their official margins of victory in order to reduce the risk of protest initiation.   
+Altogether, there scanty evidence to support the argument that protest risk deters election fraud. Models 1 through 5 show that various measures of pre-election protest risk are not associated with reduced fraud\textemdash in fact, some appear to increase the severity of fraud. Models 6 through 11 show that higher levels of fraud is not "punished" by more or larger protests. Hypothesis 2 is also weakly supported; there is a significant and sizable association between election fraud and protest initiation when the ruling party's winning margin is low, but only at extremely low winning margins. However, even this suppotive finding likely presents too optimistic a picture for the protest-deterrent model of election fraud. The number and size results from the hurdle regressions show no effect for election fraud across any of the models, alone or in interaction. Even when protests are initiated\textemdash a relatively rare event in the first place\textemdash the size of a protest wave is not influenced by the degree of fraud perpetrated by the ruling party. In turn, this suggests two pessimistic interpretations of fraud-protest dynamic. First, protest may simply be less damaging to ruling parties than is regularly assumed in theories of election manipulation. Faced with a nascent protest movement, ruling parties are generally able to contain, co-opt, or repress them\textemdash regardless of the severity of election fraud. An even more troubling implication would suggest that the protest-manipulation logic, rather than serving as a deterrent, creates perverse incentives to manipulate as much as possible. If ruling parties do indeed seek to avoid protest, but manipulating heavily does not come with a cost in the number of post-election protests, ruling parties have an incentive fraudulently inflate their official margins of victory in order to reduce the risk of protest initiation.   
 
 
 
@@ -738,7 +698,7 @@ cowplot::plot_grid(p.gdplow, p.gdphigh)
 ```
 
 
-\singlespace
+
 ```{r zero-model-table-count, echo=FALSE}
 #modelsummary::modelsummary(models, coef_omit = "zero", gof_omit = "R2", longtable=T, stars = T, title = 'Hurdle models of post-election protest (counts)',
 #                           coef_rename = 
@@ -754,9 +714,9 @@ cowplot::plot_grid(p.gdplow, p.gdphigh)
 ```
 
 
-One objection to this framing may be that, if the level of manipulation and the risk of protest are endogenous to one another, perhaps the null result found for the number of protests is to be expected. That is, perhaps we are observing the equilibrium behavior predicted in many formal models: the threat of protest keeps fraud lower than it would be otherwise, resulting in limited (if any) protest. In some states, this equilibrium level of fraud is higher than in others, resulting in no correlation between fraud and observed protest. There are two reasons to be skeptical of this interpretation, one empirical and one substantive.  
+One objection to this framing may be that, if the level of manipulation and the risk of protest are endogenous to one another, perhaps the null result found for the number and size of protests is the result of equilibrium behavior predicted in many formal models. The threat of protest keeps fraud lower than it would be otherwise, resulting in limited (if any) protest. In some states, this equilibrium level of fraud is higher than in others, resulting in no correlation between fraud and observed protest. There are three reasons to be skeptical of this interpretation, two empirical and one substantive.  
 
-Empirically, deterrence models would expect the equilibrium level of fraud to fall as protest risk increases, and for more severe protest to occur as a result of miscalculation by the regime. We can test this by examining the predicted intensity of protest from the models specified here. If the severity of fraud is held constant at a high level while underlying protest risk increases, we should see an increase in the predicted protest outcome. Taking protest size as an example, using Model XX, Figure \@ref(fig:pred-size) shows there is no evidence of such an effect. Both panels show the marginal effect of a relatively fraudulent election (*intentional irregularities* is set to one standard deviation above the mean) on the predicted maximum protest size, conditional on the closeness of the election result. All control variables have been set to their means or modes with the exception of lagged GDP growth rate. In the left panel, GDP growth has been set to -0.5, close to its minimum value; on the right, it has been set to 3. An equilibrium approach would suggest that high fraud is more dangerous in the troubled economic environment captured on the left, especially at low levels of *winner's vote-share*. However, we see practically no difference in the predicted maximum protest size across the different economic conditions modeled here\textemdash changing economic conditions do not appear to affect the 'appropriate' level of fraud, throwing cold water on the equilibrium argument. 
+First, such an objection does not account for the unexpected results found in Models 1 through 5, where indicators of pre-election protest risk were found to be associated with more severe election-day fraud. Second, deterrence models would expect the equilibrium level of fraud to fall as protest risk increases, and for more severe protest to occur as a result of miscalculation by the regime. We can test this by examining the predicted intensity of protest from the models specified here. If the severity of fraud is held constant at a high level while underlying protest risk increases, we should see an increase in the predicted protest outcome. Taking protest size as an example, using Model 10, Figure \@ref(fig:pred-size) shows there is no evidence of such an effect. Both panels show the marginal effect of a relatively fraudulent election (*election fraud* is set to one standard deviation above the mean) on the predicted maximum protest size, conditional on the closeness of the election result. All control variables have been set to their means or modes with the exception of lagged GDP growth rate. In the left panel, GDP growth has been set to -0.5, close to its minimum value; on the right, it has been set to 3. An equilibrium approach would suggest that high fraud is more dangerous in the troubled economic environment captured on the left, especially at low levels of *winner's vote-share*. However, we see practically no difference in the predicted maximum protest size across the different economic conditions modeled here\textemdash changing economic conditions do not appear to affect the 'appropriate' level of fraud, throwing cold water on the equilibrium argument. 
 
 Substantively, even if one does not fully discount the claim that the null results shown here represent equilibrium behavior, it is difficult to dispute that the resulting outcome is weighted heavily in favor of governments. In the dataset of 1110 elections used here, only 19 elections in five countries are coded as having an *intentional irregularities* score of less than -2 (indicating extremely fraud-free elections). By contrast, 121 elections in 27 countries score higher than 2 (indicating highly fraudulent elections). The frequency of fraud, the rarity of protest, and the finding that fraud severity is not correlated with the scope of protest events all point to the same conclusion: protest risk is not a substantial constraint on election fraud in electoral authoritarian and electoral democratic regimes.
 
@@ -767,13 +727,89 @@ Substantively, even if one does not fully discount the claim that the null resul
 
 # A further test: protest wave duration
 
-To examine the proposition that the information value of election fraud is low, relative to other indicators of regime and opposition strength, I employ Cox proportional-hazards models of protest-wave duration. That data in these models is limited to those cases where protests are initiated; in this sense, they represent the cases where opposition groups were most optimistic about challenging the government (or most aggrieved). In Table XX, coefficients with a negative sign indicate factors that are associated with longer-lived protest movements; those with a positive sign indicate factors associated with a speedier demise. As the models in Table XX show, more severe election fraud is not associated with longer-lasting protest (which would indicate a more determined opposition and/or a weaker ruling party). Instead, we observe that repressive capacity is the variable most consistently associated with protest duration\textemdash as repressive capacity eases initially, protest waves last longer; as repressive capacity diminishes further, protest waves again become shorter. This suggests that more open, democratic states are more likely to offer concessions to protesters.
+```{r, include=FALSE}
+library(survival)
+library(ggsurvfit)
+nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(d.events.num > 0, 1, NA))
+nelda2.sub <- nelda2.sub %>% mutate(fraud_level = ifelse(v2elirreg.inv >= (.98 + .97), "High",
+                                                            ifelse(v2elirreg.inv <= (.98 - .97), "Low", "Moderate")))
 
-```{r, echo=FALSE, warning=FALSE}
+nelda2.sub.km <- nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0)
+
+
+km <-  with(nelda2.sub.km, Surv(d.events.num, surv_status))
+
+survfit2(Surv(d.events.num, surv_status) ~ 1, data = nelda2.sub.km %>% filter(d.events.num < 300)) %>% 
+  ggsurvfit() +
+#   add_confidence_interval() +
+  labs(
+    x = "Days",
+    y = "Overall survival probability"
+  )
+
+survfit2(Surv(d.events.num, surv_status) ~ fraud_level, data = nelda2.sub.km %>% filter(d.events.num < 300)) %>% 
+  ggsurvfit() +
+#   add_confidence_interval() +
+  labs(
+    x = "Days",
+    y = "Overall survival probability"
+  )
+
+cox1 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag , data = nelda2.sub %>% filter(inc.lose == "0" & n.events.post > 0 & inc.replaced.prot == 0))
+summary(cox1)
+cz1 <- cox.zph(cox1, transform = "identity")
+print(cz1)
+plot(cz1[8])
+abline(h=0)
+abline(v = 11)
+abline(v = 25)
+abline(v = 90)
+
+
+
+
+cox1t <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv + tt(v2elirreg.inv) + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag , data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0), tt = function(x, t, ...)  x* nsk(t, knots=c(11, 25, 90),
+Boundary.knots = FALSE))
+summary(cox1t)
+
+cz <- cox.zph(cox1, transform = function(time) 1/(log(time + 1)))
+print(cz)
+plot(cz) # The points on the plot are residuals of v2elirreg.inv (and other vars) based on hte predicted value of X and time t. The line shows the estimated value of the coefficient on variable X at time t compared to its baseline. You want it to be zero for consistent effects over time. V2elirreg.inv is positive for about two weeks early on. The substantive effect of this can be shown by taking two values of v2elirreg.inv (i.e. first and third quartile), taking the difference, and finding exp(coefficient_residual * difference). The result shows here that protests in states in the third quartile of fraud are exp(.75*1.4) = 2.86 times more likely to die than those in the first quartile during those couple weeks. So this suggests that if protests survive the first week or two, the state's capacity starts to kick in?
+
+sandbox_data <- survSplit(Surv(d.events.num, surv_status) ~ 
+                      jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + fraud_level  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
+                      data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0), cut = c(2), episode = "tgroup")
+
+
+cox1.2 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + fraud_level*(as.factor(tgroup))  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, data = sandbox_data)
+summary(cox1.2)
+
+
+
+
+
+cox2 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0))
+summary(cox2)
+
+cox3 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag , data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0))
+summary(cox3)
+
+cox4 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0))
+summary(cox4)
+
+```
+
+This dataset can be used for a test of the idea that election fraud is not informative about the duration of protest outside of an initial window. To do so, I employ Cox proportional-hazards models of protest-wave duration after subsetting the data to those cases where protests are initiated but incumbents survived; in this sense, they represent the cases where opposition groups were most optimistic about challenging the government (or most aggrieved), but ultimately were overmatched. In Table \@ref(tab:cox-models-tab), coefficients with a negative sign indicate factors that are associated with longer-lived protest movements; those with a positive sign indicate factors associated with a speedier demise. 
+
+In Model 12, all covariates' effects are modeled as time-invariant. However, diagnostics of the model suggest that this assumption may not be upheld for *election fraud*.^[Schoenfeld residuals for *election fraud* are not independent of time, as calculated using the `survival` package in R [@survival-package].] To adjust for this, Model 13 allows the coefficient for *election fraud* to take on different values at different points in time. Based on the diagnostics, I allow the value of the coefficient to vary for three periods: 1 - 11 days, 12 - 25 days, and 26 days to the maximum value. Model 13 shows the result of this analysis; in it, *election fraud* has a positive and significant coefficient for the earliest time period. This indicates that, for the first 11 days of a protest movement, states that engaged in more election fraud are more likely to be able to quash the protests (whether by repression or accommodation). After this period, there is no significant relationship between the level of fraud and the survival of the protest wave. That is, if a protest movement has survived longer than (roughly) a week and a half after the election, the severity of fraud does not influence its duration.
+
+These results indicate, first, that the influence of a fraudulent election on the duration of mass protest diminishes over time. It also suggests that most protests are failed bets. Upon taking to the streets, protesters are more likely to find themselves facing a capable incumbent regime the more fraudulent the election was. Finally, if protests survive beyond the short term, the severity of fraud no longer has any effect. Instead, structural indicators\textemdash the strength of the opposition in the legislature, the degree to which parties are organized across the country, and (to a lesser extent) the openness of civil society are all associated with longer-lived protest movements. Similarly, a more fractured incumbent regime, as indicated by a term-limited incumbent, also make protest survival more likely. All of this is supportive of the theoretical model laid out above.
+
+```{r cox-models-tab, echo=FALSE, warning=FALSE}
 models3 <- list()
-models3[['Model 5']] <- cox1
-models3[['Model 6']] <- cox2
-models3[['Model 7']] <- cox3
+models3[['Model 12']] <- cox1
+models3[['Model 13']] <- cox1t
+#models3[['Model 14']] <- cox3
 
 
 
