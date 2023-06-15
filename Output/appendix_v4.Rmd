@@ -311,76 +311,109 @@ p.d.margin.ch + coord_cartesian(ylim=c(0, 100))
 
 ## Chosen successors
 
-```{r}
+The models in the main text control for the presence of term-limited executive incumbents, based on the logic in Hale [@hale_patronal_2014]. However, it could be the case that the nature of a term-limited election affects the behavior of protesters and election manipulators alike; that is, perhaps when there is a designated successor, the heir apparent is better able to mobilize the resources of the state to manipulate elections and suppress protest. Using a variable from NELDA that codes for designated successors, the following models add a categorical variable for the incumbent's status, which can take on the following values: *executive eligible*, *chosen successor*, *contested executive election*, and *legislative election*. As Table \@ref(tab:successor-table) and Figure \@ref(fig:successor-fig) show, the results are largely similar to those in the main text. Higher levels of fraud does make the occurrence of protest more likely at low incumbent vote-shares, but this does not translate into a higher risk of more numerous or larger protest events. 
+
+```{r successor-table, echo=FALSE, message=FALSE, warning=FALSE}
 nelda2.sub <- nelda2.sub %>% mutate(incumb.status = relevel(incumb.status, ref = "Executive eligible"))
 nelda2.sub <- nelda2.sub %>% mutate(no_protest = ifelse(n.events.post == 0, 1, 0))
+nelda2.sub <- nelda2.sub %>% mutate(no_size = ifelse(max_size == 0, 1, 0))
 
 
-model.n.base2.succ <- glmmTMB::glmmTMB(n.events.post ~ incumb.status + v2elirreg.inv + jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv*winner.share.upd   +    physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag ,
+
+model.n.base2.succ <- glmmTMB::glmmTMB(n.events.post ~ incumb.status + jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  +   physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
                                          zi = ~.,
                                           family= nbinom2,
                                           data = nelda2.sub %>% filter(inc.lose == "0" & v2x_regime <= 2))
-summary(model.n.base2.succ)
+#summary(model.n.base2.succ)
 
-model.n.base2.succ.bin <- glm(no_protest ~ incumb.status + v2elirreg.inv + jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv*winner.share.upd   +    physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
+model.n.base2.succ.bin <- glm(no_protest ~ incumb.status + jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  +   physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
                               data = nelda2.sub  %>% filter(inc.lose == "0" & v2x_regime <= 2))
-summary(model.n.base2.succ.bin)
+#summary(model.n.base2.succ.bin)
 
 plot_binary_margin_succ_n <- sjPlot::plot_model(model.n.base2.succ.bin, type = "pred", terms = c("winner.share.upd [all]", "v2elirreg.inv [-.45, 1.78]"))
 plot_binary_margin_succ_n <- plot_binary_margin_succ_n +  labs(x = "Incumbent vote-share", y = "Predicted probability", title = "Predicted probability of no protest", color = "Election fraud") + theme_bw()
 
 ####
 
-model.d.base2.succ <- glmmTMB::glmmTMB(d.events.num ~ incumb.status + v2elirreg.inv + jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag  + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv+  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + inc.lose ,
+model.d.base2.succ <- glmmTMB::glmmTMB(d.events.num ~ incumb.status + jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  +   physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
                                           zi = ~.,
                                           family= nbinom2,
-                                          data = nelda2.sub)
+                                          data = nelda2.sub %>% filter(inc.lose == "0" & v2x_regime <= 2))
 #summary(model.d.base2.succ)
 
-model.size.base2.lmer <- lmer(log(max_size) ~  incumb.status + jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + as.factor(inc.lose) + ( 1 | stateid), data = nelda2.sub %>% filter(max_size > 0))
-#summary(model.size.base2.lmer)
+model.size.base2 <- glmmTMB::glmmTMB(max_size ~ incumb.status + jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag +  v2elirreg.inv*winner.share.upd  +    physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+                                ziformula=~.,
+                                data = nelda2.sub %>% filter(inc.lose == "0" & v2x_regime <= 2),
+                                family=truncated_nbinom2)
+#summary(model.size.base2)
+
+model.size.base2.succ.bin <- glm(no_size ~ incumb.status + jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag + gdpgro.1lag + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  +   physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election  + regional_success_lag,
+                              data = nelda2.sub  %>% filter(inc.lose == "0" & v2x_regime <= 2))
+#summary(model.size.base2.succ.bin)
+
+plot_binary_margin_succ_size <- sjPlot::plot_model(model.size.base2.succ.bin, type = "pred", terms = c("winner.share.upd [all]", "v2elirreg.inv [-.45, 1.78]"))
+plot_binary_margin_succ_size <- plot_binary_margin_succ_size +  labs(x = "Incumbent vote-share", y = "Predicted probability", title = "Predicted probability of no protest", color = "Election fraud") + theme_bw()
+
+### Table
 
 models4 <- list()
-models4[['Model 5']] <- model.n.base2.hurd.mm
-models4[['Model 6']] <- model.d.base2.hurd
-models4[['Model 7']] <- model.size.base2.lmer
+models4[['Model 5']] <- model.n.base2.succ
+#models4[['Model 6']] <- model.d.base2.hurd
+models4[['Model 6']] <- model.size.base2
 
 
 
-t5a <- huxreg(models4, tidy_args = c("component" = "cond"), borders = 0, number_format = 2,  omit_coefs = c("sd__(Intercept)", "sd__Observation"), statistics = character(0)) %>% set_caption("Table XX: Models of number, duration, and size of protests") %>% insert_row("", "Number", "Duration", "Size", after = 0)
+t5a <- huxreg(models4, tidy_args = c("component" = "cond"), borders = 0, number_format = 2,  omit_coefs = c("sd__(Intercept)", "sd__Observation"), statistics = character(0)) %>% set_caption("Models of number and size of protests") %>% insert_row("", "Number", "Size", after = 0)
 theme_compact(t5a, header_rows = TRUE, header_cols = FALSE)
 
 ```
 
+```{r n-protests-margin, echo=FALSE, message=FALSE, warning=FALSE}
+dat <- ggpredict(model.n.base2.succ, terms = c("winner.share.upd [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1]", "v2elirreg.inv [-.45, 1.64]"), type = "count") 
+p.n.margin <- plot(dat)
+p.n.margin <- p.n.margin +  labs(x = "Incumbent vote-share", y = "Number of events", title = "Predicted number of protests", color = "Election fraud") + theme_bw() + coord_cartesian(ylim = c(0, 40))
+```
+
+```{r size-protests-margin, echo=FALSE, message=FALSE, warning=FALSE}
+dat <- ggpredict(model.size.base2, terms = c("winner.share.upd [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1]", "v2elirreg.inv [-.45, 1.64]"), type = "count") 
+p.s.margin <- plot(dat)
+p.s.margin <- p.s.margin +  labs(x = "Incumbent vote-share", y = "Size of events", title = "Predicted size of protests", color = "Election fraud") + theme_bw() + coord_cartesian(ylim = c(0, 18000))
+```
+
+```{r successor-fig, fig.cap="Fraud, winning vote-share, and probability of protest initiation", fig.height=7, echo=FALSE, message=FALSE, fig.pos='H'}
+plot.combined.prob <- cowplot::plot_grid(plot_binary_margin_succ_n, p.n.margin, p.s.margin, ncol=1)
+plot.combined.prob
+```
+
+
 
 ## Including liberal democracies
 
+The main text excludes liberal democracies from the analysis, on the grounds that the prior literature on protest and fraud typically confines itself to regimes that hold multiparty elections, and the liberal-democratic cases exhibit little variation in their (low) levels of election fraud. But perhaps it is in liberal democracies where the deterrent logic operates most effectively, settling into an equilibrium of high protest risk and low fraud. Including liberal democracies in the analysis results in little difference from the findings in the main text, however. Election fraud does not appear associated with a higher number of protest events, or larger protest sizes.
 
-```{r}
+```{r lib-table, echo=FALSE}
 
-model.n.base2.hurd.mm <- glmmTMB::glmmTMB(n.events.post ~ v2elirreg.inv+ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag +  pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election ,
+model.n.base2.lib <- glmmTMB::glmmTMB(n.events.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  + osorg.1lag  + natlpartyorg.lag +   winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                           zi = ~.,
                                           family= nbinom2,
                                           data = nelda2.sub)
-#summary(model.n.base2.hurd.mm)
+#summary(model.n.base2.lib)
 
-model.d.base2.hurd <- glmmTMB::glmmTMB(d.events.num ~  v2elirreg.inv + jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag  + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + inc.lose ,
+
+
+model.size.base2.lib <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv +  winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                           zi = ~.,
                                           family= nbinom2,
                                           data = nelda2.sub)
-#summary(model.d.base2.hurd)
-
-model.size.base2.lmer <- lmer(log(max_size) ~  v2elirreg.inv+ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + as.factor(inc.lose) + ( 1 | stateid), data = nelda2.sub %>% filter(max_size > 0))
-#summary(model.size.base2.lmer)
+#summary(model.size.base2.lib)
 
 models5 <- list()
-models5[['Model 5']] <- model.n.base2.hurd.mm
-models5[['Model 6']] <- model.d.base2.hurd
-models5[['Model 7']] <- model.size.base2.lmer
+models5[['Model 5']] <- model.n.base2.lib
+models5[['Model 7']] <- model.size.base2.lib
 
 
 
-t6a <- huxreg(models5, tidy_args = c("component" = "cond"), borders = 0, number_format = 2,  omit_coefs = c("sd__(Intercept)", "sd__Observation"), statistics = character(0)) %>% set_caption("Table XX: Models of number, duration, and size of protests") %>% insert_row("", "Number", "Duration", "Size", after = 0)
+t6a <- huxreg(models5, tidy_args = c("component" = "cond"), borders = 0, number_format = 2,  omit_coefs = c("sd__(Intercept)", "sd__Observation"), statistics = character(0)) %>% set_caption("Table XX: Models of number and size of protests, inclu. liberal democracies") %>% insert_row("", "Number", "Size", after = 0)
 theme_compact(t6a, header_rows = TRUE, header_cols = FALSE)
 ```
 
