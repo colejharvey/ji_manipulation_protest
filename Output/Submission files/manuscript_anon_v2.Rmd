@@ -493,7 +493,7 @@ model.size.base <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.
                                 family=truncated_nbinom2)
 summary(model.size.base)
 
-model.size.base2 <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv +  +   winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+model.size.base2 <- glmmTMB::glmmTMB(max_size ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv + gdpgro.1lag  +   winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
                                 ziformula=~.,
                                 data = nelda2.sub %>% filter(inc.lose == "0"),
                                 family=truncated_nbinom2)

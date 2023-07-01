@@ -30,6 +30,7 @@ massmob <- read.csv(here::here("Data", "mmALL_073119_csv.csv"))
 Cleaning nelda variables--this will have to be done for all used variables
 ```{r}
 nelda <- nelda %>% dplyr::rename(first.mp.election = nelda2)
+nelda <- nelda %>% rename(unscheduled_election = nelda6)
 nelda <- nelda %>% rename(protests = nelda9)
 nelda <- nelda %>% rename(inc.fav.cancel = nelda34)
 nelda <- nelda %>% rename(inc.lose = nelda24)
@@ -58,7 +59,8 @@ nelda <- nelda %>% mutate(preelection_concerns = ifelse(preelection_concerns == 
 nelda <- nelda %>% mutate(harass_opp = ifelse(nelda3 == "No", 1, ifelse(harass_opp == "yes", 1, ifelse(harass_opp == "no", 0, NA))))
 nelda <- nelda %>% mutate(opp_leaders_prevented = ifelse(nelda3 == "No", "In general", ifelse(opp_leaders_prevented == "yes", "Specifically", ifelse(opp_leaders_prevented == "no", "No", NA))))
 
-                          
+
+nelda <- nelda %>% mutate(unscheduled_election = ifelse(is.na(unscheduled_election)==T, NA, ifelse(unscheduled_election == "yes" | unscheduled_election == "N/A", 1, 0)))   #"N/A" here refers to no common expectation for election timing                    
                           
           
 
@@ -553,7 +555,7 @@ Remove post-election protests unrelated to election
 ```{r}
 nelda_massmob <- nelda_massmob %>% rename(notes_massmob = notes)
 
-nelda_massmob <- nelda_massmob %>% filter(is.na(protest_mdy) == T | protest_mdy < election_mdy | (protest_mdy >= election_mdy & str_detect(notes_massmob, regex(pattern = "election*|vot*|ballot*", ignore_case = T))))
+#nelda_massmob <- nelda_massmob %>% filter(is.na(protest_mdy) == T | protest_mdy < election_mdy | (protest_mdy >= election_mdy & str_detect(notes_massmob, regex(pattern = "election*|vot*|ballot*", ignore_case = T)))) #Turn this on to focus only on protests related to the election
 ```
 
 
@@ -635,5 +637,5 @@ nelda_complete <- nelda_complete %>% left_join(winner.shares, by = "electionid")
 ## Writing
 
 ```{r}
-write.csv(nelda_complete, here::here("Data", "nelda_complete.csv"))
+write.csv(nelda_complete, here::here("Data", "nelda_massmob_all.csv")) #File that only looks at election-related massmob was called nelda_complete
 ```
