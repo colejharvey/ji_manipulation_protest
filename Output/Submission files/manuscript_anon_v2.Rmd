@@ -344,7 +344,7 @@ incl.vars <- nelda2.sub %>% dplyr::select('Judicial independence' = jucon.1lag,
 
 ```{r summary-table, echo=FALSE, message=FALSE, warning=FALSE}
 library(kableExtra)
-datasummary_skim(incl.vars, output = "kableExtra", title = "Table 1: Summary statistics")  %>%
+datasummary_skim(incl.vars, output = "kableExtra", title = "Table 1: Summary statistics and variable distributions ")  %>%
     kable_styling(font_size = 9, full_width = FALSE)
 ```
 \doublespace
