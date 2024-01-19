@@ -29,7 +29,8 @@ In this paper, I argue that\textemdash in keeping with the idea of 'informationa
 
 However, these models overlook that engineering widespread fraud requires control over patronage resources and the criminal and judicial apparatus (ADD CITES to HARVEY). As a result, they overlook the fact that high levels of fraud are a sign of incumbent strength in cooptation and Gerschewski's third pillar: repression. Both of these tools can be useful for defusing or dismantling an emergent protest movement. As a result, effective fraudsters should also be effective protest-crushers. This helps explain the broad pattern, where most fraudulent elections go unprotested, and among those that do generate protest, the vast majority fail to dislodge the incumbent. Consequently, there is little penalty for severe manipulation in terms of protest risk, and little deterrent effect.
 
-Testing this proposition in more depth is difficult.  requires looking beyond binary measures of protest, and toward measures of its scope. Research on the risk posed to governments by electoral protest often acknowledges---whether explicitly or implicitly---the importance of broad-based protest campaigns, rather than one-off events [@Bunce2006;@tucker2007;@DAnieri2006;@Carnaghan2016;@bunce2010]. This implicit assumption has largely been overlooked in theories and empirical studies of the relationship between election manipulation and protest, however. In most cases, the risk of protest has both been conceptualized and operationalized as a binary outcome: protests occur or they do not. This approach obscures the importance of the number and size of electoral protests in a ruling party's calculation of the risk involved in manipulation an election. 
+Testing this proposition in more depth is difficult.  requires looking beyond binary measures of protest, and toward measures of its scope. Research on the risk posed to governments by electoral protest often acknowledges---whether explicitly or implicitly---the importance of broad-based protest campaigns, rather than one-off events [@Bunce2006;@tucker2007;@DAnieri2006;@Carnaghan2016;@bunce2010]. This implicit assumption has largely been overlooked in theories and empirical studies of the relationship between election manipulation and protest, however. In most cases, the risk of protest has both been conceptualized and operationalized as a binary outcome: protests occur or they do not. This approach obscures the importance of the number and size of electoral protests in a ruling party's calculation of the risk involved in manipulation an election.
+
 
 
 Using cross-national data on 1110 elections from 1989 to 2012 where incumbents claimed victory, combining data from NELDA [@hyde_2012_marinov], V-Dem [@vdem11.1], and the Electoral Contention and Violence dataset [@Daxecker2019], this paper finds little support for the hypothesis that more fraudulent elections are associated with a higher risk that any post-election protest event occurs. Furthermore, it shows that more severe election fraud is not associated with more numerous or larger post-election protests. Instead, these protest dynamics appear driven more by structural and institutional factors, including in particular whether or not the incumbent chief executive is term limited. 
@@ -964,6 +965,28 @@ What I'm looking for here is weak government -> high fraud + narrow vote share -
 ```{r}
 ggplot(nelda2.sub %>% filter(presidential == 1), aes(x = winner.share.upd, y = v2elirreg.inv)) + geom_point(aes(size=n.events.post)) + geom_vline(xintercept = .5, linetype = 2) + geom_hline(yintercept = 0)
 ```
+Duration as zero-inflated count model (i.e. count of days that protest movement lasted)
+```{r}
+model.d.base <- glmmTMB::glmmTMB(d.events.num ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv +  +   v2elirreg.inv + winner.share.upd + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+                                ziformula=~.,
+                                data = nelda2.sub %>% filter(inc.lose == "0"),
+                                family=truncated_nbinom2)
+summary(model.d.base)
+
+model.d.base2 <- glmmTMB::glmmTMB(d.events.num ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + libdem.1lag  + natlpartyorg.lag + v2elirreg.inv + gdpgro.1lag  +   winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag ,
+                                ziformula=~.,
+                                data = nelda2.sub %>% filter(inc.lose == "0"),
+                                family=truncated_nbinom2)
+summary(model.d.base2)
+
+sjPlot::plot_model(model.d.base2, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [-1, 1.5]"))
+
+mydf <- ggpredict(model.d.base2, type = "re.zi", terms = c("winner.share.upd [.2, .3, .4, .5, .6, .7, .8, .9]", "v2elirreg.inv [-.25, 1.5]"))
+ggplot(mydf, aes(x, predicted, color = group)) +
+  geom_line() 
+```
+
+
 
 \newpage
 # References
