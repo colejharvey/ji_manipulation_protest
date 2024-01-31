@@ -132,7 +132,6 @@ In particular,
 library(tidyverse)
 library(countrycode)
 library(readxl)
-library(vdemdata)
 library(lme4)
 library(interplot)
 library(lubridate)
@@ -235,7 +234,7 @@ nelda2.sub <- nelda2.sub %>% filter(d.events.num <= 100)
 
 #Protest cases only
 
-protest.cases <- nelda2.sub %>% filter(any.ecav.protest == 1)
+protest.cases <- nelda2.sub %>% filter(any.ecav.protest == 1 & inc.lose == 0)
 
 ## Coding median size as 0 when n.events = 0
 
@@ -529,7 +528,7 @@ library(survival)
 library(ggsurvfit)
 nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(d.events.num > 0, 1, NA))
 nelda2.sub <- nelda2.sub %>% mutate(surv_status_censor_assume = ifelse(d.events.num == 0, NA, 
-                                                                       ifelse(d.events.num >= 62, 0, 1)))
+                                                                       ifelse(d.events.num >= 69, 0, 1)))
 
 
 
@@ -579,13 +578,7 @@ summary(cox1t2)
 
 
 
-sandbox_data <- survSplit(Surv(d.events.num, surv_status) ~ 
-                      jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + fraud_level + winner.share.upd + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag,
-                      data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0), cut = c(2), episode = "tgroup")
 
-
-cox1.2 <- coxph(Surv(d.events.num, surv_status) ~ jucon.1lag + legcon.1lag + altinf.1lag + libdem.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + fraud_level*(as.factor(tgroup)) + winner.share.upd + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, data = sandbox_data)
-summary(cox1.2)
 
 
 
@@ -614,9 +607,11 @@ summary(cox4)
 
 
 
-To further test the mechanism outlined in the theory above, I examine the relationship between fraud and the survival of protest movements in cases where protests began but the incumbent eventually survived. Restricting the sample to these cases allows for a consistent interpretation of results: longer protest waves indicate a more even match between the resources and resiliency of the protesters and the capacity and cohesiveness of the regime, while shorter-lived protest movements are those which were more easily defeated. If significant election fraud is indicative of regime resilience, the expectation is that more fraudulent elections will be associated with more quickly dispatched protest movements.^[Protest waves are defeated in the large majority of cases. There are 211 cases where protest occurs, out of which only 13 see new elections or the incumbent step down.]
+To further test the mechanism outlined in the theory above, I examine the relationship between fraud and the survival of protest movements in cases where protests began but the incumbent eventually survived. Restricting the sample to these cases allows for a consistent interpretation of results: longer protest waves indicate a more even match between the resources and resiliency of the protesters and the capacity and cohesiveness of the regime, while shorter-lived protest movements are those which were more easily defeated. If significant election fraud is indicative of regime resilience, the expectation is that more fraudulent elections will be associated with more quickly dispatched protest movements.^[Protest waves are defeated in the large majority of cases. There are 156 cases where protest occurs, out of which only 9 see new elections or the incumbent step down.]
 
-Table \@ref(tab:cox-models-tab) reports the results of Cox proportional hazard models of protest duration. In such models, coefficients with a positive sign indicate factors that are associated with shorter-lived; those with a negative sign indicate factors associated with a slower demise. The coefficient for *election fraud* is positive and significant in Model 7. Exponentiation of the coefficient for election fraud gives a hazard ratio of 3.3, indicating that for each one-unit increase in fraud, a protest movement becomes three times more likely to end at any given time. This supports H3b, and fails to support H3a.
+Table \@ref(tab:cox-models-tab) reports the results of Cox proportional hazard models of protest duration. In such models, coefficients with a positive sign indicate factors that are associated with shorter-lived protests; those with a negative sign indicate factors associated with a slower demise. The coefficient for *election fraud* is positive and significant in Model 7, indicating that more fraudulent elections are associated with more quickly dispatched protest movements. Exponentiation of the coefficient for election fraud gives a hazard ratio of 3.3, indicating that for each one-unit increase in fraud, a protest movement becomes three times more likely to end at any given time. This supports H3b, and fails to support H3a.
+
+One threat to inference in this design derives from the 90-day post-election window considered by ECAV. It is possible that some protest movements considered 'dead' in Models 7 and 8 are, in fact, 'alive;' it is just that subsequent protests occurred after 90 days and are censored as a result. As a test of the robustness of the conclusions, in Models 9 and 10, observations are assumed to be right-censored if a protest occurred within three-weeks of the 90-day cutoff. This amounts to 15 of the 156 observations in the sample. The results remain consistent with those from the uncensored models. While the coefficient on *election fraud* falls slightly short of conventional statistical significance in Model 9, it retains the same size and sign compared to Model 7. Similarly, the interaction effect in Model 10 increases in size, while retaining its direction and statistical significance. This suggests that the main models are not drawing overly incorrect inferences from longer-lasting protest movements.  
 
 Further investigation of the relationship between fraud and protest duration yields additional insights. In Model 8, incumbent vote-share is interacted with *election fraud*. Figure \@ref(fig:margin-dur-fig) shows the marginal effect. As shown in the figure, for all incumbent vote-shares near and below fifty percent, large-scale fraud significantly increases the likelihood that a protest movement will end. This result also supports the fraud-as-strength model, and shows that only as vote-share increases above fifty percent does a government in a low-fraud election have the same likelihood of defeating a protest movement at a given time.
 
@@ -640,15 +635,14 @@ survfit2(Surv(d.events.num, surv_status) ~ fraud_level, data = nelda2.sub.km %>%
 ```
 
 
-In Model 7, all covariates' effects are modeled as time-invariant. However, diagnostics of the model suggest that this assumption may not be upheld for *election fraud*.^[Schoenfeld residuals for *election fraud* are not independent of time, as calculated using the `survival` package in R [@survival-package].] To adjust for this, Model 12 allows the coefficient for *election fraud* to take on different values at different points in time. Based on the diagnostics, I allow the value of the coefficient to vary for three periods: 1 - 11 days, 12 - 25 days, and 26 days to the maximum value. Model 12 shows the result of this analysis; in it, *election fraud* has a positive and significant coefficient for the earliest time period. This indicates that, for the first 11 days of a protest movement, states that engaged in more election fraud are more likely to be able to quash the protests (whether by repression or accommodation). This is contrary to the expectations of deterrence models. After this period, there is no significant relationship between the level of fraud and the survival of the protest wave. That is, if a protest movement has survived longer than (roughly) a week and a half after the election, the severity of fraud does not influence its continued duration. It is also noteworthy that this formulation is a much better fit to the data than the linear effect in Model 11, with a much lower root mean square error.
-
-These results indicate that the influence of a fraudulent election on the duration of mass protest diminishes over time. It also suggests that most protests are failed bets. Upon taking to the streets, protesters are more likely to find themselves facing a capable incumbent regime the more fraudulent the election was. Finally, if protests survive beyond the short term, the severity of fraud no longer has any effect. Instead, structural indicators\textemdash the strength of the opposition in the legislature, the degree to which parties are organized across the country, and (to a lesser extent) the openness of civil society are all associated with longer-lived protest movements. Similarly, a more fractured incumbent regime, as indicated by a term-limited incumbent, also make protest survival more likely. All of this is supportive of the theoretical model laid out above.
 
 ```{r cox-models-tab, echo=FALSE, warning=FALSE}
 models3 <- list()
 models3[['Model 7']] <- cox1
 models3[['Model 8']] <- cox2
-models3[['Model 9']] <- cox1t
+models3[['Model 9']] <- cox1.cen
+models3[['Model 10']] <- cox2.cen
+
 
 
 
@@ -674,7 +668,11 @@ modelsummary::modelsummary(models3, gof_omit = "AIC|BIC|Log", longtable=F, stars
 
 # Discussion
 
-Altogether, the findings challenge the idea that the fear of protest helps deter election manipulation. To the extent that fraud is a signal of incumbent strength, it is an unreliable one. Since even strong incumbents commit fraud, the decision to take to the streets is often a losing gamble\textemdash anticipating a weak incumbent, they instead find one that is capable of repressing, coopting, or conciliating an emerging protest movement. Indeed, while there are 194 cases of protest out of the 661 elections in this dataset where incumbents claimed victory, only 8 resulted in either the incumbent being replaced or the election being re-run due to mass protests.\footnote{This information is determined using the NELDA variables NELDA37 and NELDA41.} This suggests a `success rate' for post-election protest of about four percent *conditional on protest initiation*, and about one percent for all elections in electoral authoritarian and electoral democratic regimes. 
+Altogether, the findings are a challenge to several prior assumptions and findings in the literature on election fraud, non-democratic elections, and authoritarian stability. These results do not suggest that election fraud is used as a tool of weak incumbents, in fact just the opposite. When encountering a more precarious pre-election environment\textemdash due to higher levels of pre-election protest or a successful post-election protest in the region, for instance\textemdash governments appear to respond by producing higher levels of election fraud. On its own, this is a potentially significant result which suggests that governments are not deterred from engaging in election fraud by the risk of post-election protest, as numerous models predict.
+
+More compellingly, this project finds that when post-election protests *do* occur, they are shorter-lived in for cases where fraud was higher. This indicates that governments which produced high levels of fraud were more able to quash those protest movements which did emerge more quickly than governments that produced low levels of fraud. This is contrary to three prevailing wisdoms. The first is that weak governments manipulate more than strong, the second is that more election fraud is a grievance that mobilizes regime antagonists, and the third is that fraud can only deter protest if it is excessive or blatant.
+
+Indeed, while there are 194 cases of protest out of the 661 elections in this dataset where incumbents claimed victory, only 8 resulted in either the incumbent being replaced or the election being re-run due to mass protests.\footnote{This information is determined using the NELDA variables NELDA37 and NELDA41.} This suggests a `success rate' for post-election protest of about four percent *conditional on protest initiation*, and about one percent for all elections in electoral authoritarian and electoral democratic regimes. 
 
 The results indicate that we should be cautious when building and interpreting theories of politics outside liberal democratic regimes that emphasize the risk of mass protest as a trip-wire to be avoided, and add empirical evidence to Przeworski's [-@przeworskiFormalModelsAuthoritarian2022] critique of such models. The rarity of post-election protest, especially successful protest, suggests that such events are highly contingent; they hinge on a multitude of factors that go beyond the regime's efforts to bias election outcomes. Both protest and election fraud are complex phenomena with multiple drivers, including resource costs, signaling, information-gathering, principal-agent dynamics, and more; these findings indicate that protest risk is not a significant factor under most circumstances. 
 
