@@ -13,380 +13,311 @@ toc: false
 csl: C:/Users/colej/Documents/Research projects/ji_manipulation_protest/american-journal-of-political-science.csl
 header-includes: \usepackage{booktabs}
 ---
+
+
 ```{r setup, include = FALSE}
 library(tidyverse)
 library(countrycode)
 library(readxl)
-library(vdemdata)
 library(lme4)
 library(interplot)
 library(lubridate)
 library(summarytools)
 library(stargazer)
 library(ggeffects)
-library(glmmTMB)
-library(modelsummary)
-library(huxtable)
-library(simPH)
 library(survival)
-
-nelda_massmob <- read.csv(here::here("Data", "nelda_massmob_all.csv")) #nelda_complete.csv for only elex-related
-nelda2.sub <- read.csv(here::here("Data", "nelda2_sub_2023-05-22.csv"))
-
-##Bringing nelda2.sub variables over to massmob dataset
-nelda2_select <- nelda2.sub %>% dplyr::select(NeldaID, regime_age, v2elirreg.inv.lag)
-nelda_massmob <- nelda_massmob %>% rename(NeldaID = electionid)
-
-nelda_massmob <- nelda_massmob %>% left_join(nelda2_select, by = "NeldaID")
+library(modelsummary)
+library(glmmTMB)
+library(huxtable)
+library(kableExtra)
+library(simPH)
 
 
+nelda2.sub <- read.csv(here::here("Data", "nelda2_sub_2024-02-06.csv"))
 
-nelda_massmob <- nelda_massmob %>% mutate(legit_no_proc = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol))
-nelda_massmob <- nelda_massmob %>% mutate(legit_total = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol + v2exl_legitratio))
+nelda2.sub <- nelda2.sub %>% mutate(legit_no_proc = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol))
+nelda2.sub <- nelda2.sub %>% mutate(legit_total = (v2exl_legitperf + v2exl_legitlead + v2exl_legitideol + v2exl_legitratio))
 
 
 
 ##Naming nelda variables
 
-nelda_massmob <- nelda_massmob %>% rename(boycott = nelda14)
-nelda_massmob <- nelda_massmob %>% mutate(boycott = ifelse(boycott == "yes", 1, ifelse(boycott == "no", 0,
+nelda2.sub <- nelda2.sub %>% rename(boycott = nelda14)
+nelda2.sub <- nelda2.sub %>% mutate(boycott = ifelse(boycott == "yes", 1, ifelse(boycott == "no", 0,
                                                                                  NA)))
 
 ##Creating economic crisis variable
 
-nelda_massmob <- nelda_massmob %>% mutate(econ.crisis = ifelse(is.na(e_miinflat) == T | is.na(gdpgro.1lag) == T, NA, ifelse(e_miinflat > 15 | gdpgro.1lag <= -0.012, 1, 0)))
-nelda_massmob <- nelda_massmob %>% mutate(econ.crisis = as.factor(econ.crisis))
+nelda2.sub <- nelda2.sub %>% mutate(econ.crisis = ifelse(is.na(e_miinflat) == T | is.na(gdpgro.1lag) == T, NA, ifelse(e_miinflat > 15 | gdpgro.1lag <= -0.012, 1, 0)))
+nelda2.sub <- nelda2.sub %>% mutate(econ.crisis = as.factor(econ.crisis))
 
-nelda_massmob <- nelda_massmob %>% mutate(gdp.crisis = ifelse(is.na(gdpgro.1lag) == T, NA, ifelse(gdpgro.1lag <= -0.012, 1, 0)))
-nelda_massmob <- nelda_massmob %>% mutate(inflat.crisis = ifelse(is.na(e_miinflat) == T, NA, ifelse(e_miinflat > 15, 1, 0)))
+nelda2.sub <- nelda2.sub %>% mutate(gdp.crisis = ifelse(is.na(gdpgro.1lag) == T, NA, ifelse(gdpgro.1lag <= -0.012, 1, 0)))
+nelda2.sub <- nelda2.sub %>% mutate(inflat.crisis = ifelse(is.na(e_miinflat) == T, NA, ifelse(e_miinflat > 15, 1, 0)))
 
-nelda_massmob <- nelda_massmob %>% mutate(grievance.index = ifelse(is.na(e_migdppcln) == T, NA, e_migdppcln*v2xeg_eqdr))
+nelda2.sub <- nelda2.sub %>% mutate(grievance.index = ifelse(is.na(e_migdppcln) == T, NA, e_migdppcln*v2xeg_eqdr))
 
-##Removing cases before 1990, when ECAV starts
-nelda_massmob <- nelda_massmob %>% filter(year >= 1990)
+
 
 ## Removing cases where inc. loses
-#nelda_massmob <- nelda_massmob %>% filter(inc.lose == 0)
-
-##Nelda crisis as a factor
-
-nelda_massmob <- nelda_massmob %>% mutate(econ.crisis.nelda.1lag = as.factor(econ.crisis.nelda.1lag))
+#nelda2.sub <- nelda2.sub %>% filter(inc.lose == 0)  #See how this affects things
 
 ##Intmon as a factor
-nelda_massmob <- nelda_massmob %>% mutate(v2elintmon = as.factor(v2elintmon))
-
-##Presidential as a facotr
-nelda_massmob <- nelda_massmob %>% mutate(presidential = as.factor(presidential))
+nelda2.sub <- nelda2.sub %>% mutate(v2elintmon = as.factor(v2elintmon))
 
 
-nelda_massmob <- nelda_massmob %>% mutate(electoral.dem = ifelse(v2x_regime == 2, 1, 0))
+nelda2.sub <- nelda2.sub %>% mutate(electoral.dem = ifelse(v2x_regime == 2, 1, 0))
 
 #Square of physint
 
-nelda_massmob <- nelda_massmob %>% mutate(physintlag.sq = physinteg.1lag^2)
+nelda2.sub <- nelda2.sub %>% mutate(physintlag.sq = physinteg.1lag^2)
+
+## Categorical variable for incumbent status
+
+nelda2.sub <- nelda2.sub %>% mutate(incumb.status = as.factor(ifelse(inc.termlimit == "yes" & chosen.successor == 1, "Chosen successor",
+                                                           ifelse(inc.termlimit == "yes" & chosen.successor == 0, "Contested exec. election", 
+                                                                  ifelse(inc.termlimit == "no", "Executive eligible", "Legislative election"))))) 
+nelda2.sub <- nelda2.sub %>% mutate(incumb.status = relevel(incumb.status, ref = "Legislative election"))
 
 
-#Crisis as factor
+#Coding as factors
 
-nelda_massmob <- nelda_massmob %>% mutate(econ.crisis.nelda.1lag = factor(econ.crisis.nelda.1lag))
+nelda2.sub <- nelda2.sub %>% mutate(presidential = factor(presidential))
+#nelda2.sub <- nelda2.sub %>% mutate(inc.termlimit.num = factor(inc.termlimit.num))
+nelda2.sub <- nelda2.sub %>% mutate(rentierstate = factor(rentierstate))
+nelda2.sub <- nelda2.sub %>% mutate(taxstate = factor(taxstate))
+nelda2.sub <- nelda2.sub %>% mutate(unscheduled_election = factor(unscheduled_election))
+nelda2.sub <- nelda2.sub %>% mutate(inc.lose = factor(inc.lose))
+nelda2.sub <- nelda2.sub %>% mutate(econ.crisis.nelda.1lag = factor(econ.crisis.nelda.1lag))
 
-#Margins with updates
-
-nelda_massmob <- nelda_massmob %>% mutate(winner.share.upd = ifelse(types == "Executive", v2elvotlrg_amend/100, v2ellovtlg_amend/100))
 
 #Successful protest = new elections or new incumbent
 
-nelda_massmob <- nelda_massmob %>% mutate(protest.success = ifelse(inc.replaced.prot == 1 | elections.cancel.prot, 1, 0))
+nelda2.sub <- nelda2.sub %>% mutate(protest.success = ifelse(inc.replaced.prot == 1 | new.elections.held == 1, 1, 0))
 
-#Protest cases only
-
-#protest.cases <- nelda_massmob %>% filter(any.ecav.protest == 1)
 
 
 # Replacing NA with 0 for term limits variable in known parliamentary countries in legislative elections
 
-nelda_massmob <- nelda_massmob %>% mutate(inc.termlimit.num = ifelse(is.na(inc.termlimit.num) == T & v2ex_elechog == 0, 0, inc.termlimit.num))
+nelda2.sub <- nelda2.sub %>% mutate(inc.termlimit.num = ifelse(is.na(inc.termlimit.num) == T & v2ex_elechog == 0, 0, inc.termlimit.num))
 
-## Changing participants from numeric category to text
-#nelda_massmob <- nelda_massmob %>% mutate(median.participants = round(median.participants))
-#nelda_massmob <- nelda_massmob %>% mutate(particpants_categorical = ifelse(is.na(median.participants)==T, NA, ifelse(median.participants == 1, "Less than 10",
-#                     ifelse(2, "10 to 99", ifelse(3, "100 to 999",
-#                                                  ifelse(4, "1000 to 9,999", ifelse(5, "Greater than 10,000", NA)))))))
-#nelda_massmob <- nelda_massmob %>% mutate(particpants_categorical = as.factor(particpants_categorical))
+## Replacing NA with 0 for protest size
 
-## Median particiants (MM) as factor
+#nelda2.sub <- nelda2.sub %>% mutate(max_size = ifelse(is.na(max_size)==T & n.events.post == 0, 0, max_size))
 
-nelda_massmob <- nelda_massmob %>% mutate(median.participants.mm.post = as.factor(median.participants.mm.post))
+## Fixing missing values of winner.share.upd for liberal democracies
 
-## Inverting the vote buying measure so it is not reverse coded
+nelda2.sub <- nelda2.sub %>% mutate(winner.share.upd = ifelse(is.na(winner.share.upd)==T & v2x_regime == 3, winner.margin, winner.share.upd))
 
-nelda_massmob <- nelda_massmob %>% mutate(v2elvotbuy_inv = -1*v2elvotbuy)
+## Set max_size zero for elections with no protest
 
+#nelda2.sub <- nelda2.sub %>% mutate(max_size = ifelse(n.events.post == 0, 0, max_size))
+
+## Excluding liberal democracies
+
+nelda2.sub <- nelda2.sub %>% filter(v2x_regime == 1 | regime.1lag == 1 | v2x_regime == 2 | regime.1lag == 2  ) #Includes only authoritarian, add e-dems with | v2x_regime == 2  #Current version includes lagged 1 in order to capture pre-election auth.
+
+## Remove outlier
+nelda2.sub <- nelda2.sub %>% filter(d.events.num <= 100)
+
+#Protest cases only
+
+protest.cases <- nelda2.sub %>% filter(any.ecav.protest == 1 & inc.lose == 0)
+
+## Coding median size as 0 when n.events = 0
+
+nelda2.sub <- nelda2.sub %>% mutate(median.participants = ifelse(n.events.post == 0, 0, median.participants))
+
+## Any protest
+
+nelda2.sub <- nelda2.sub %>% mutate(any_protest = ifelse(n.events.post > 0, 1, 0))
+
+## Surv status
+library(survival)
+library(ggsurvfit)
+nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(d.events.num > 0, 1, NA))
 
 ```
 
 
-# Robustness check using Mass Mobilization dataset
-
-Not including duration or size data since MassMob data includes all protest, not just election focused and has less reliable size data. Will still use number.
 
 
-```{r}
-m1 <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag   +  presidential + libdem.1lag + urban.pct + rentierstate + taxstate + n.events.massmob.pre +  physinteg.1lag + physintlag.sq    + unscheduled_election + regime_age + (1 | stateid), data = nelda_massmob) 
+# Including electoral democracies
+
+The theory articulated in the main text is primarily concerned with dynamics within authoritarian regimes, where patronage resources can be marshaled to support election-manipulation machines, and rule of law can be subverted to protect election-manipulating agents. These mechanisms should be expected to become attenuated, on average, as regimes become more democratic. As such, the main analysis is confined to authoritarian regimes (as coded in V-Dem) where multiparty elections are held. However, this approach imposes a binary cutoff on what is a continuum of regimes, and could introduce some bias by excluding edge cases.
+
+To check this possibility, the analysis here shows the results of models from the main text using a broader range of cases: including both the authoritarian regimes from the original analysis and electoral democracies (V-Dem variable v2x_regime = 2). I expect that changing the sample in this way will weaken the results somewhat, due to the inclusion of cases where theoretically important variables are weaker. For example, the average level of *judical constraints on the executive* in the original sample is 0.37, while the average in the electoral democracies in almost twice as high at 0.66. Similarly, the average incumbent vote-share in the original sample is 0.55, while in the electoral democracies it is 0.41. The liberal democracies have substantially more professionalized bureaucratic appointments on average (0.27) than the electoral authoritarian regimes (-0.33). Consequently I expect levels of electoral manipulation to be lower and less variable in the new sample, on average, if only because the electoral democracies have less developed tools to engage in large-scale fraud. 
+
+Though the results are somewhat weaker, as expected, the general patterns hold. Table \@ref(tab:manipdv-ed) shows how levels of electoral manipulation respond to varying levels of pre-election risk to incumbents. As in the main text, the results show that more pre-election protest is associated with higher levels of fraud. We also see that higher levels of manipulation are seen at middle levels of repression, as in the main text. Two difference are apparent, however. Adding a number of higher-values cases reveals a straightforward, negative, statistically significant relationship between physical integrity protection and election fraud. However, goodness-of-fit measures indicate that the curvilinear relationship fits the data substantially better. Finally, while *regional protest success* has a positive coefficient, it is not statistically significant as it is in the main text. Despite the less theoretically appropriate sample, we still observe the predicted relationship in two models. In a a third, we see the coefficient is in the predicted direction, but loses its statistical significance. This is broadly supportive of the main argument.
+
+```{r manipdv-ed, echo=FALSE}
+
+m1a <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate +  unscheduled_election + state.owned.1lag + patronage.appts.1lag  + regional_success_lag +  v2elembaut + (1 | stateid), data = nelda2.sub) 
+#summary(m1a)
+
+m1b <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag  + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   + presidential   +   urban.pct + rentierstate + taxstate + physinteg.1lag + state.owned.1lag + patronage.appts.1lag  + unscheduled_election + v2elembaut +  (1 | stateid), data = nelda2.sub) 
+
+#summary(m1b)
+
+m1c <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate  + physinteg.1lag + physintlag.sq + state.owned.1lag + patronage.appts.1lag  + unscheduled_election  + v2elembaut +  (1 | stateid), data = nelda2.sub) 
+#summary(m1c)
+
+m1 <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate + n.events.pre  + state.owned.1lag + patronage.appts.1lag + unscheduled_election  + v2elembaut +  (1 | stateid), data = nelda2.sub) 
 
 #summary(m1)
 
-m1b <- lmer(v2elirreg.inv ~ v2elirreg.inv.lag + jucon.1lag + legcon.1lag  + gdpgro.1lag +  osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag   + presidential   +  libdem.1lag + urban.pct + rentierstate + taxstate + n.events.massmob.pre +  physinteg.1lag + physintlag.sq  + unscheduled_election + regime_age+ (1 | stateid), data = nelda_massmob) 
-summary(m1b)
-```
+m1a <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   +  presidential +  urban.pct + rentierstate + taxstate +  unscheduled_election + state.owned.1lag + patronage.appts.1lag  + regional_success_lag + v2elembaut +  (1 | stateid), data = nelda2.sub) 
+#summary(m1a)
 
+m1b <- lmer(v2elirreg.inv ~ jucon.1lag + legcon.1lag  + gdpgro.1lag +  osorg.1lag  + natlpartyorg.lag   + presidential   +   urban.pct + rentierstate + taxstate + physinteg.1lag + state.owned.1lag + patronage.appts.1lag +  unscheduled_election + v2elembaut +  (1 | stateid), data = nelda2.sub) 
 
-```{r}
-nelda_massmob <- nelda_massmob %>% mutate(n.events.massmob.pre_any = ifelse(n.events.massmob.pre > 0, 1, 0)) #Including the raw value of this variable becomes almost perfectly predictive of the zero-inflation portion of the model
-
-model.n.base2.hurd.mm <- glmmTMB::glmmTMB(n.events.massmob.post ~  jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre + unscheduled_election + regime_age + inc.lose,
-                                          zi = ~  jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre_any + unscheduled_election + regime_age + inc.lose,
-                                          family= nbinom2,
-                                          data = nelda_massmob)
-summary(model.n.base2.hurd.mm)
-
-
-model.n.griev.hurd.mm <- glmmTMB::glmmTMB(n.events.massmob.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre + unscheduled_election + regime_age+ inc.lose,
-                                ziformula=~  jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre_any + unscheduled_election + regime_age + inc.lose,
-                                data = nelda_massmob,
-                                family=truncated_nbinom2)
-summary(model.n.griev.hurd.mm)
-
-
-
-```
-
-```{r zero-model-table, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
-
-models_t1 <- list()
-models_t1[['Model 4']] <- model.n.base2.hurd.mm
-models_t1[['Model 5']] <- model.n.griev.hurd.mm
-#models_t1[['Model 5']] <- m_duration_count
-#models_t1[['Model 6']] <- model.d.base2.hurd
-#models_t1[['Model 7']] <- model.d.griev.hurd
-
-
-t1a <- huxreg(models_t1, tidy_args = c("component" = "zi"), borders = 0, number_format = 2, omit_coefs = c("rentierstate1", "taxstate1", "n.events.pre", "unscheduled_election1", "inc.lose1", "v2elirreg.inv:winner.share.upd", "gdpgro.1lag:v2elirreg.inv"), statistics = character(0)) %>% set_caption("Table 3: Zero-inflated models of protest initiation")
-
-
-theme_compact(t1a, header_rows = TRUE, header_cols = FALSE)
-
-
-t1b <- huxreg(models_t1, tidy_args = c("component" = "zi"), borders = 0, number_format = 2, omit_coefs = c("(Intercept)", "jucon.1lag" , "legcon.1lag" , "gdpgro.1lag" , "altinf.1lag" , "pubseccorrup.lag" , "osorg.1lag" , "econ.crisis.nelda.1lag1" , "natlpartyorg.lag" , "v2elirreg.inv" , "pubseccorrup.lag"   , "presidential1" , "inc.termlimit.num1"  ,  "physinteg.1lag" , "physintlag.sq" , "urban.pct")) %>% set_caption("Table 3 cont.: Zero-inflated models of protest initiation")
-
-
-theme_compact(t1b, header_rows = TRUE, header_cols = FALSE)
-
-
-
-
-models_t2 <- list()
-models_t2[['Model 4']] <- model.n.base2.hurd.mm
-models_t2[['Model 5']] <- model.n.griev.hurd.mm
-
-
-
-t2a <- huxreg(models_t2, tidy_args = c("component" = "cond"), borders = 0, number_format = 2, stars = c(`***` = 0.001, `**` = 0.01, `*` = 0.05, `+` = .1), omit_coefs = c("rentierstate1", "taxstate1", "n.events.pre", "unscheduled_election1", "inc.lose1", "v2elirreg.inv:winner.share.upd", "gdpgro.1lag:v2elirreg.inv"), statistics = character(0)) %>% set_caption("Table 4: Negative binomial models of number of protests")
-
-
-theme_compact(t2a, header_rows = TRUE, header_cols = FALSE)
-
-
-t2b <- huxreg(models_t2, tidy_args = c("component" = "cond"), borders = 0, number_format = 2, stars = c(`***` = 0.001, `**` = 0.01, `*` = 0.05, `+` = .1), omit_coefs = c("(Intercept)", "jucon.1lag" , "legcon.1lag" , "gdpgro.1lag" , "altinf.1lag" , "pubseccorrup.lag" , "osorg.1lag" , "econ.crisis.nelda.1lag1" , "natlpartyorg.lag" , "v2elirreg.inv" , "pubseccorrup.lag"   , "presidential1" , "inc.termlimit.num1"  ,  "physinteg.1lag" , "physintlag.sq" , "urban.pct")) %>% set_caption("Table 4 cont.: Negative binomial models of number of protests")
-
-
-theme_compact(t2b, header_rows = TRUE, header_cols = FALSE)
-
-
-#modelsummary::modelsummary(models, shape = term + estimate + component ~ model, coef_omit = "count", gof_omit = "R2", stars = T, longtable=T,  title = 'Binary portion of hurdle models of post-election protest', coef_rename = 
-#               c("zero_(Intercept)" = "Intercept", "zero_jucon.1lag" = "Judical independence (lag)", "zero_legcon.1lag" = "Leg. constraints (lag)", 
-#                 "zero_gdpgro.1lag" = "GDP growth rate (lag)", "zero_altinf.1lag" = "Alternative info. (lag)", 
-#                 "zero_osorg.1lag" = "Civil soc. openness (lag)", "zero_econ.crisis.nelda.1lag1" = "Economic crisis", 
-#                 "zero_natlpartyorg.lag" = "National party organization (lag)", "zero_presidential1" = "Presidential election",
-#                 "zero_inc.termlimit.num" = "Incumbent term-limited",  
-#                 "zero_urban.pct" = "Urbanization", "zero_rentierstate" = "Rentier state", "zero_taxstate" = "Tax state",
-#                 "zero_n.events.pre" = "Number of pre-election protests", "zero_pubseccorrup.lag" = "Public sector corruption (lag)", "zero_v2elirreg.inv" = "Election fraud",
-#                 "zero_physinteg.1lag" = "Physical integrity (lag)", "zero_physintlag.sq" = "Physical integrity (lag), squared", "zero_winner.share.upd" = "Incumbent vote-share", "v2elirreg.inv" = "Election fraud", "zero_unscheduled_election" = "Off-schedule election")) # %>%
-#  add_header_above(c(" " = 1, "Protest quantity" = 3, "Maximum protest size" = 3))
-
-
-```
-
-
-Figures \@ref(fig:n-protests-margin-max), \@ref(fig:n-protests-crisis-max), and \@ref(fig:n-protests-corrupt-max) illustrate the marginal effects of extreme values for election fraud on the expected number of post-election protests, based on Models 4 - 6 in the main text. They demonstrate that there is no significant relationship between the severity of fraud and the size of post-election protest waves for any of the moderator variables\textemdash incumbent vote-share, economic crisis, or public sector corruption.
-
-
-```{r, include=FALSE}
-model.n.base2.hurd.mm <- hurdle(n.events.massmob.post ~  jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre |  jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + pubseccorrup.lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre, data = nelda_massmob %>% filter(gdpgro.1lag < 1), dist = "negbin")
-summary(model.n.base2.hurd.mm)
-
-model.n.griev.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre | jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag +  osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   gdpgro.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre, dist = "negbin", data = nelda_massmob %>% filter(gdpgro.1lag < 1))
-summary(model.n.griev.hurd.mm)
-
-
-model.n.griev2.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag + osorg.1lag + altinf.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre | jucon.1lag + legcon.1lag  + altinf.1lag + osorg.1lag + econ.crisis.nelda.1lag + natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   econ.crisis.nelda.1lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre , data = nelda_massmob, dist = "negbin")
-summary(model.n.griev2.hurd.mm)
-
-model.n.griev3.hurd.mm <- hurdle(n.events.massmob.post ~ jucon.1lag + legcon.1lag + altinf.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre  | jucon.1lag + legcon.1lag + altinf.1lag +  pubseccorrup.lag + osorg.1lag +  natlpartyorg.lag + v2elirreg.inv + pubseccorrup.lag +   pubseccorrup.lag*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.massmob.pre, data = nelda_massmob, dist = "negbin")
-summary(model.n.griev3.hurd.mm)
-```
-
-```{r n-protests-margin-max, fig.cap="Fraud, incumbent vote-share, and number of protest events", echo=FALSE, message=FALSE, out.width = '70%', fig.align='center'}
-dat <- ggpredict(model.n.base2.hurd.mm, terms = c("winner.share.upd", "v2elirreg.inv [-2.3, 3.2]")) 
-p.n.margin <- plot(dat)
-p.n.margin + coord_cartesian(ylim = c(0, 70)) + labs(x = "Incumbent vote-share", y = "Number of events", title = "Predicted counts of protest events", color = "Election fraud") + theme_bw()
-
-```
-
-```{r n-protests-crisis-max, fig.cap="Fraud, economic crisis, and number of protest events", echo=FALSE, message=FALSE, out.width = '70%', fig.align='center'}
-dat <- ggpredict(model.n.griev2.hurd.mm, terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv [-2.3, 3.2]")) 
-p.n.crisis <- plot(dat)
-p.n.crisis + coord_cartesian(ylim = c(0, 125)) + labs(x = "Economic crisis", y = "Number of events", title = "Predicted counts of protest events", color = "Election fraud") + theme_bw()
-
-```
-
-
-```{r n-protests-corrupt-max, fig.cap="Fraud, public sector corruption, and number of protest events", echo=FALSE, message=FALSE, out.width = '70%', fig.align='center'}
-dat <- ggpredict(model.n.griev3.hurd.mm, terms = c("pubseccorrup.lag", "v2elirreg.inv [-2.3, 3.2]")) 
-p.corr.n.margin <- plot(dat)
-p.corr.n.margin + coord_cartesian(ylim = c(0, 120)) + labs(x = "Public sector corruption", y = "Number of events", title = "Predicted counts of protest events", color = "Election fraud") + theme_bw()
-
-```
-
-
-\newpage
-
-
-# Removing controls to address multicollinearity
-
-The models in the main text include a suite of control variables aimed at controlling for common causes of election manipulation and protest, in order to minimize the risks of confounding and omitted variable bias. However, this approach runs the risk that individual coefficients may be highly sensitive to model specification due to multicollinearity. In particular, many of the control variables\textemdash such as *legislative constraints*, *judicial independence*, and *physical integrity* are likely to be correlated with pre-election protest. To address this risk, the models in Tables \@ref(tab:zero-model-table-small) and \@ref(tab:zero-model-table-count-small) exclude non-electoral control variables. That is, they include variables related to the election itself, the measure of *pre-election protest*, and the explanatory variables from the main models. 
-
-The results echo those from the main text. Severity of election fraud is not associated with an increased number of protests, conditional on incumbent vote-share, economic crisis, or public-sector corruption. Marginal effects for interaction terms are presented in the following figures.
-
-```{r models-hurdlesmall-mm, warning = FALSE, message = FALSE, include = F}
-model.small.novoteshare.hurd.mm <- hurdle(n.events.massmob.post ~ v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election |  v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election , data = nelda_massmob %>% filter(gdpgro.1lag < 1), dist = "negbin")
-summary(model.small.novoteshare.hurd.mm)
-
-model.small.base.hurd.mm <- hurdle(n.events.massmob.post ~  v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd |  v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd , data = nelda_massmob %>% filter(gdpgro.1lag < 1), dist = "negbin")
-summary(model.small.base.hurd.mm)
-
-model.small.base2.hurd.mm <- hurdle(n.events.massmob.post ~  v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd + winner.share.upd*v2elirreg.inv | v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd  + winner.share.upd*v2elirreg.inv, data = nelda_massmob %>% filter(gdpgro.1lag < 1), dist = "negbin")
-summary(model.small.base2.hurd.mm)
-
-
-
-
-model.small.griev2.hurd.mm <- hurdle(n.events.massmob.post ~  v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd + econ.crisis.nelda.1lag*v2elirreg.inv | v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd + econ.crisis.nelda.1lag*v2elirreg.inv , data = nelda_massmob, dist = "negbin")
-summary(model.small.griev2.hurd.mm)
-
-model.small.griev3.hurd.mm <- hurdle(n.events.massmob.post ~ v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd + pubseccorrup.lag*v2elirreg.inv   |   v2elirreg.inv + presidential + inc.termlimit.num  + n.events.massmob.pre + unscheduled_election + winner.share.upd + pubseccorrup.lag*v2elirreg.inv , data = nelda_massmob, dist = "negbin")
-summary(model.small.griev3.hurd.mm)
-```
-\newpage
-
-```{r zero-model-table-small, echo=FALSE}
+#summary(m1b)
 
 models <- list()
-models[['Model 11']] <- model.small.base.hurd.mm
-models[['Model 12']] <- model.small.base2.hurd.mm
-#models[['Model ']] <- model.n.griev.hurd.mm
-models[['Model 13']] <- model.small.griev2.hurd.mm
-models[['Model 14']] <- model.small.griev3.hurd.mm
+models[['Model 16']] <- m1
+models[['Model 17']] <- m1b
+models[['Model 18']] <- m1c
+models[['Model 19']] <- m1a
 
 
-modelsummary::modelsummary(models, coef_omit = "count", gof_omit = "R2", stars = T, longtable=T,  title = 'Binary portion of hurdle models of post-election protest', coef_rename = 
-               c("zero_(Intercept)" = "Intercept", "zero_presidential1" = "Presidential election",
-                 "zero_inc.termlimit.num" = "Incumbent term-limited",  
-                                  "zero_n.events.massmob.pre" = "Number of pre-election protests", "zero_pubseccorrup.lag" = "Public sector corruption (lag)", "zero_v2elirreg.inv" = "Election fraud", "zero_unscheduled_election" = "Off-schedule election", "zero_winner.share.upd" = "Incumbent vote-share", "v2elirreg.inv" = "Election fraud", "winner.share.upd" = "Incumbent vote-share",
-                 "zero_econ.crisis.nelda.1lag1" = "Economic crisis", "econ.crisis.nelda.1lag1" = "Economic crisis",
-                 "pubseccorrup.lag" = "Public sector corruption"))
+modelsummary(models, output = "kableExtra",  stars = T, gof_omit = c("R2|RMSE"), title = 'Random-intercept multilevel model of election-day fraud', coef_omit = "SD", coef_rename = 
+               c("jucon.1lag" = "Judical independence (lag)", "legcon.1lag" = "Leg. constraints (lag)", 
+                 "gdpgro.1lag" = "GDP growth rate (lag)", "altinf.1lag" = "Alternative info. (lag)", 
+                 "osorg.1lag" = "Civil soc. openness (lag)", "econ.crisis.nelda.1lag1" = "Economic crisis", 
+                 "natlpartyorg.lag" = "National party organization (lag)", "presidential1" = "Presidential election",
+                 "inc.termlimit.num" = "Incumbent term-limited", "libdem.1lag" = "Liberal democracy index (lag)", 
+                 "urban.pct" = "Urbanization", "rentierstate" = "Rentier state", "taxstate" = "Tax state",
+                 "n.events.massmob.pre" = "Number of pre-election protests", "median.participants.mm.pre" = "Median size of pre-election protests", "unscheduled_election" = "Off-schedule election",
+                 "rentierstate1" = "Rentier state", "taxstate1" = "Tax state", "n.events.pre" = "Number of pre-election protests", "unscheduled_election1" = "Off-schedule election", "physinteg.1lag" = "Phys. integrity index (lag)",
+                 "physintlag.sq" = "Phys. int. lag squared", "regional_success_lag" = "Regional protest diffusion", "antisys.1lag" = "Anti-system CS activity",
+                  "state.owned.1lag" = "Private ownership (lag)",
+                 "patronage.appts.1lag" = "Professional bureaucracy (lag)",
+                 "v2elembaut" = "Election management body autonomy"
+                 )) %>% kable_styling(latex_options = "HOLD_position")
 
-
-```
-
-\newpage
-
-```{r zero-model-table-count-small, echo=FALSE}
-modelsummary::modelsummary(models, coef_omit = "zero", gof_omit = "R2", longtable=T, stars = T, title = 'Hurdle models of post-election protest (counts)',
-                           coef_rename = 
-              c("count_(Intercept)" = "Intercept", "count_presidential1" = "Presidential election",
-                 "count_inc.termlimit.num" = "Incumbent term-limited",  
-                                  "count_n.events.massmob.pre" = "Number of pre-election protests", "count_pubseccorrup.lag" = "Public sector corruption (lag)", "count_v2elirreg.inv" = "Election fraud", "count_unscheduled_election" = "Off-schedule election", "count_winner.share.upd" = "Incumbent vote-share", "v2elirreg.inv" = "Election fraud", "winner.share.upd" = "Incumbent vote-share",
-                 "count_econ.crisis.nelda.1lag1" = "Economic crisis", "econ.crisis.nelda.1lag1" = "Economic crisis",
-                 "pubseccorrup.lag" = "Public sector corruption"))
-
+##Note: state owned variable is inverse coded, so should be labeled as private ownership in economy
+##Note: Patronage appointments ialso inverse coded. Higher values = more professionalism
 ```
 
 
 
+Turning to models of protest initiation, the findings from the main text are upheld. Higher levels of fraud are associated with a higher risk of protest, but only when incumbent vote-shares are low. Table \@ref(tab:logit-table-edem) reports these results, and Figure \@ref(fig:margin-prob-fig-edem) shows the predicted probabilities.
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-dat <- ggpredict(model.small.base2.hurd.mm, terms = c("winner.share.upd", "v2elirreg.inv [-.44, 1.77]")) 
-p.n.margin <- plot(dat)
-p.n.margin <- p.n.margin + labs(x = "Incumbent vote-share", y = "Predicted number of protests" , title = "Predicted count of protest events") + coord_cartesian(ylim = c(0, 100)) + theme_bw()
 
-dat <- ggpredict(model.small.base2.hurd.mm, terms = c("winner.share.upd", "v2elirreg.inv [-.44, 1.77]"), type = "zi_prob") 
-p.b.margin <- plot(dat)
-p.b.margin <- p.b.margin + labs(x = "Incumbent vote-share", y = "Predicted probability of protest" , title = "Predicted probability of any protest")  + theme_bw()
+```{r include=FALSE}
+nelda2.sub <- nelda2.sub %>% mutate(any_protest = ifelse(d.events.num > 0, 1, 0))
+#nelda2.sub <- nelda2.sub %>% mutate(no_size = ifelse(max_size == 0, 1, 0))
+
+
+model.margin.binary <- glm(any_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv +  +    winner.share.upd + v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+summary(model.margin.binary)
+
+
+model.margin.binary.int <- glm(any_protest ~ jucon.1lag + legcon.1lag + gdpgro.1lag + altinf.1lag + libdem.1lag +  + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv +  +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+summary(model.margin.binary.int)
+
+
+model.margin.binary_noc <- glm(any_protest ~ jucon.1lag + legcon.1lag +  altinf.1lag + libdem.1lag +  + osorg.1lag  + natlpartyorg.lag + v2elirreg.inv +  +    winner.share.upd*v2elirreg.inv  + presidential + inc.termlimit.num  +  urban.pct + rentierstate + taxstate + n.events.pre + unscheduled_election, family = binomial(link = "logit"), data = nelda2.sub %>% filter(inc.lose == "0"))
+summary(model.margin.binary_noc)
+
+
+
+## Plots
+
+####Margin
+
+#plot_binary_margin_max <- sjPlot::plot_model(model.margin.binary, type = "pred", terms = c("winner.share.upd [all]", "v2elirreg.inv [-2.3, 3.2]"))
+#plot_binary_margin_max <- plot_binary_margin_max +  labs(x = "", y = "Predicted probability", title = "Predicted probability of any protest", color = "Election fraud") + theme_bw()
+
+plot_binary_margin_typ_n <- sjPlot::plot_model(model.margin.binary.int, type = "pred", terms = c( "winner.share.upd", "v2elirreg.inv [-.05, 2]"), show.data = T)
+plot_binary_margin_typ_n <- plot_binary_margin_typ_n +  labs(x = "Incumbent vote-share", y = "Predicted probability", title = "Predicted probability of protest", color = "Election fraud") + theme_bw()
+
 
 ```
 
-```{r n-protests-margin-small, fig.cap="Election integrity, incumbent vote-share, and number of protest events", echo=FALSE, warning=FALSE, out.width = '70%', fig.align='center'}
-p.n.margin 
+```{r logit-table-edem, echo=FALSE}
+models2 <- list()
+models2[['Model 20']] <- model.margin.binary
+models2[['Model 21']] <- model.margin.binary.int
+models2[['Model 22']] <- model.margin.binary_noc
+
+modelsummary(models2, output = "kableExtra",  stars = T, title = 'Logit models of protest occurrence', coef_rename = 
+               c("jucon.1lag" = "Judical independence (lag)", "legcon.1lag" = "Leg. constraints (lag)", 
+                 "gdpgro.1lag" = "GDP growth rate (lag)", "altinf.1lag" = "Alternative info. (lag)", 
+                 "osorg.1lag" = "Civil soc. openness (lag)", "econ.crisis.nelda.1lag1" = "Economic crisis", 
+                 "natlpartyorg.lag" = "National party organization (lag)", "presidential1" = "Presidential election",
+                 "inc.termlimit.num" = "Incumbent term-limited", "libdem.1lag" = "Liberal democracy index (lag)", 
+                 "urban.pct" = "Urbanization", "rentierstate" = "Rentier state", "taxstate" = "Tax state",
+                 "n.events.massmob.pre" = "Number of pre-election protests", "median.participants.mm.pre" = "Median size of pre-election protests", "unscheduled_election" = "Off-schedule election",
+                 "rentierstate1" = "Rentier state", "taxstate1" = "Tax state", "n.events.pre" = "Number of pre-election protests", "unscheduled_election1" = "Off-schedule election", "physinteg.1lag" = "Phys. integrity index (lag)",
+                 "physintlag.sq" = "Phys. int. lag squared", "regional_success_lag" = "Regional protest diffusion", "antisys.1lag" = "Anti-system CS activity",
+                 "v2elirreg.inv" = "Election fraud"
+                 )) %>% kable_styling(latex_options = "HOLD_position")
+```
+
+```{r margin-prob-fig-edem, fig.cap="Fraud, winning vote-share, and probability of protest initiation", fig.height=5, echo=FALSE, message=FALSE, fig.pos='H'}
+plot_binary_margin_typ_n
+```
+
+Lastly, the survival models also support the findings of the main text, as Table \@ref(tab:cox-models-tab-edem) and Figure \@ref(fig:margin-dur-fig-edem) show. Higher levels of election fraud are associated with shorter-lived protest movements when incumbent vote-shares are low, even in the expanded sample. 
+
+```{r, include=FALSE}
+library(survival)
+library(ggsurvfit)
+nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(d.events.num > 0, 1, NA))
+nelda2.sub <- nelda2.sub %>% mutate(surv_status_censor_assume = ifelse(d.events.num == 0, NA, 
+                                                                       ifelse(d.events.num >= 69, 0, 1)))
+
+
+
+
+
+
+
+
+cox1 <- coxph(Surv(d.events.num, surv_status) ~  legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate +  unscheduled_election + regional_success_lag + v2elirreg.inv  + n.events.post , data = nelda2.sub %>% filter(inc.lose == "0" & n.events.post > 0 & inc.replaced.prot == 0))
+summary(cox1)
+
+
+
+
+cox2 <- coxph(Surv(d.events.num, surv_status) ~  legcon.1lag + altinf.1lag  +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + v2elirreg.inv*winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate + unscheduled_election + regional_success_lag + n.events.post, data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0))
+summary(cox2)
+p.duration.margin <- sjPlot::plot_model(cox2, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [-.73, 1.79]")) + coord_cartesian(ylim = c(0, 10)) #This is the 10th and 90th quantiles
+p.duration.margin <- p.duration.margin +  labs(x = "Incumbent vote-share", y = "Hazard ration", title = "Hazard ratio for protest movement end", color = "Election fraud") + theme_bw() #These are extreme values: 15 and 85th percentiles
+
+
 
 ```
 
-```{r b-protests-margin-small, fig.cap="Election integrity, incumbent vote-share, and likelihood of protest", echo=FALSE, warning=FALSE, out.width = '70%', fig.align='center'}
-p.b.margin 
+
+```{r cox-models-tab-edem, echo=FALSE, warning=FALSE}
+models3 <- list()
+models3[['Model 23']] <- cox1
+models3[['Model 24']] <- cox2
+
+
+modelsummary::modelsummary(models3, gof_omit = "AIC|BIC|Log", longtable=F, stars = T, title = 'Cox proportional hazard models of protest duration', coef_rename = 
+               c("jucon.1lag" = "Judical independence (lag)", "legcon.1lag" = "Leg. constraints (lag)", 
+                 "gdpgro.1lag" = "GDP growth rate (lag)", "altinf.1lag" = "Alternative info. (lag)", 
+                 "osorg.1lag" = "Civil soc. openness (lag)", 
+                 "winner.share.upd" = "Incumbent vote-share",
+                 "natlpartyorg.lag" = "National party organization (lag)", "presidential1" = "Presidential election",
+                 "inc.termlimit.num" = "Incumbent term-limited", "libdem.1lag" = "Liberal democracy index (lag)", 
+                 "urban.pct" = "Urbanization", "rentierstate" = "Rentier state", "taxstate" = "Tax state",
+                 "n.events.massmob.pre" = "Number of pre-election protests", "median.participants.mm.pre" = "Median size of pre-election protests", "unscheduled_election" = "Off-schedule election",
+                 "rentierstate1" = "Rentier state", "taxstate1" = "Tax state", "n.events.pre" = "Number of pre-election protests", "unscheduled_election1" = "Off-schedule election", "physinteg.1lag" = "Phys. integrity index (lag)",
+                 "physintlag.sq" = "Phys. int. lag squared", "regional_success_lag" = "Regional protest diffusion", "v2elirreg.inv" = "Election fraud",
+                 "n.events.post" = "N. post-election protests"
+                 ))
 
 ```
 
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-dat <- ggpredict(model.small.griev2.hurd.mm, terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv [-.44, 1.77]")) 
-p.n.crisis <- plot(dat)
-p.n.crisis <- p.n.crisis + labs(x = "Economic crisis", y = "Predicted number of protests" , title = "Predicted count of protest events") + theme_bw()
-
-dat <- ggpredict(model.small.griev2.hurd.mm, terms = c("econ.crisis.nelda.1lag", "v2elirreg.inv [-.44, 1.77]"), type = "zi_prob") 
-p.b.crisis <- plot(dat)
-p.b.crisis <- p.b.crisis + labs(x = "Economic crisis", y = "Predicted probability of protest" , title = "Predicted probability of any protest") +  theme_bw()
-
+```{r margin-dur-fig-edem, fig.cap="Fraud, winning vote-share, and duration of protest", fig.height=5, echo=FALSE, message=FALSE, fig.pos='H'}
+p.duration.margin
 ```
 
 
-```{r n-protests-crisis-small, fig.cap="Election integrity, economic crisis, and number of protest events", echo=FALSE, warning=FALSE, out.width = '70%', fig.align='center'}
-p.n.crisis
-```
 
-```{r b-protests-crisis-small, fig.cap="Election integrity, economic crisis, and likelihood of protest", warning = FALSE, echo=FALSE, out.width = '70%', fig.align='center'}
-p.b.crisis
-```
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-dat <- ggpredict(model.small.griev3.hurd.mm, terms = c("pubseccorrup.lag", "v2elirreg.inv [-.44, 1.77]")) 
-p.corr.n.margin <- plot(dat)
-p.corr.n.margin <- p.corr.n.margin + coord_cartesian(ylim = c(0, 100)) + labs(x = "Public sector corruption", y = "Predicted number of protests" , title = "Predicted count of protest events") + theme_bw()
-
-
-dat <- ggpredict(model.small.griev3.hurd.mm, terms = c("pubseccorrup.lag", "v2elirreg.inv [-.44, 1.77]"), type = "zi_prob") 
-p.corr.b.margin <- plot(dat)
-p.corr.b.margin <- p.corr.b.margin + labs(x = "Public sector corruption", y = "Predicted probability of protest" , title = "Predicted probability of any protest") + theme_bw()
-
-```
-
-```{r n-protests-corrupt-small, fig.cap="Election integrity, public sector corruption, and number of protest events", echo=FALSE, warning=FALSE, out.width = '70%', fig.align='center'}
-p.corr.n.margin
-```
-
-```{r b-protests-corrupt-small, fig.cap="Election integrity, public sector corruption, and likelihood of protest", echo=FALSE, warning=FALSE, out.width = '70%', fig.align='center'}
-p.corr.b.margin
-```
 
 
 
