@@ -318,7 +318,7 @@ These hypotheses are tested using data from three datasets: NELDA [@hyde_2012_ma
 
 It is likely that the theoretical mechanisms described above weaken as regimes become more liberal-democratic; in liberal democracies, patronage consolidation should decline and rule of law should increase by definition. These changes should make it more difficult for incumbents to manipulate elections, irrespective of protest risk. At the same time, the more liberal-democratic a state becomes, the more alternatives there are to protest as a means to check the executive. More independent courts and more active executive constraints have been shown to be associated with improved election integrity [@Harvey2022;@Bishop2016a]; it is where these factors are weakest---the electoral authoritarian regimes---where we should expect the deterrence logic to operate under a regime-weakness model. Finally, as a matter of measurement, protest duration is likely to be an increasingly imperfect measure of incumbent strength in more liberal-democratic settings, where protest is more commonplace and less immediately threatening to the regime. The case selection strategy here, excluding electoral and liberal democracies, is thus one that both fits the theory and makes for a stronger test of the regime-weakness model. Nevertheless, an expanded sample that includes electoral democracies provides similar results in the appendix. In total, there are 659 elections included in the dataset, across 100 countries. The date range is limited by the availability of data on protest from ECAV, which ranges from 1989 to 2012.
 
-For models of protest-wave duration, as discussed in more detail below, I include only observations where a positive number of protests occurred. Only 156 observations fall into this more limited dataset. 
+For models of protest-wave duration, as discussed in more detail below, I include only observations where a positive number of protests occurred; there are 211 such cases. 
 
 
 ## Dependent variables and modeling strategies
@@ -329,6 +329,39 @@ ECAV records protests and other events related to an election, ranging from six 
 
 
 The large majority of elections experience no post-election protest: in `r nelda2.sub %>% filter(n.events.post == 0) %>% nrow()` of the `r nelda2.sub %>% nrow()` elections, no protests are recorded. Figure \@ref(fig:elex-hist) reports the distribution of election fraud across the dataset, as well as protest duration. As the figure shows, while election fraud is common among this set of regimes, protests are rare, and, when they do occur, are usually short in duration. These distributions---extensive election fraud combined with large numbers of non-protest---provides some early indication that the regime-weakness model has limited support. Still, approximately one-third of elections experienced some protest, and so protest initiation is modeled using standard logistic regression. Protest wave duration is modeled using Cox proportional hazards models.
+
+```{r binarytab, echo=FALSE, message=FALSE, warning=FALSE}
+count_table <- table(cut(nelda2.sub$winner.share.upd, breaks = c(0, .45, .55, 1), 
+    include.lowest = TRUE, labels = c("Low", "Medium", "High")),
+      cut(nelda2.sub$v2elirreg.inv, breaks =quantile(nelda2.sub$v2elirreg.inv, probs = c(0, 1/3, 2/3, 1), na.rm=T), 
+    include.lowest = TRUE, labels = c("Low", "Medium", "High")),
+      nelda2.sub$any.ecav.protest)
+
+
+
+prop_count_table <- nelda2.sub %>% filter(inc.lose == 0) %>%
+  mutate(winnershare_bin = cut(winner.share.upd,  breaks = c(0, .45, .55, 1), 
+    include.lowest = TRUE, labels = c("Low (0-45%)", "Medium (45-55%)", "High (55-100%)")),
+         fraud_bin = cut(v2elirreg.inv,  breaks =quantile(nelda2.sub$v2elirreg.inv, probs = c(0, 1/3, 2/3, 1), na.rm=T), 
+    include.lowest = TRUE, labels = c("Low", "Medium", "High"))) %>%
+  group_by(winnershare_bin, fraud_bin) %>%
+  summarise(pct_positive = mean(any.ecav.protest) * 100)
+
+prop_count_table <- pivot_wider(prop_count_table, names_from = fraud_bin, values_from = pct_positive)
+prop_count_table <- prop_count_table[1:3, 1:4]
+prop_count_table <- round(prop_count_table[,2:4], 2)
+prop_count_table <- cbind('Incumbent vote-share' = c("Low", "Medium", "High"), prop_count_table)
+
+
+
+
+prop_count_table %>%
+  kable(format = "latex", booktabs = TRUE, caption = "Percentage of cases in which post-electoral protests occurred") %>%
+  add_header_above(c(" " = 1, "Electoral fraud" = 3)) %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+As a plausibility check, I first examine patterns of protest initiation. The regime-weakness model expects initiation to increase with fraud, holding vote-share constant; while the regime-strength model expects a less consistent pattern. Table \@ref(tab:binarytab) categorizes elections into 3 x 3 bins based on incumbent vote-share and degree of electoral fraud, and reports the percentage of elections in each category that were followed by protest.  For this table, vote-share is considered low if it less than 45%, medium between 45% and 55%, and high if greater than 55%. The middle category is intended to capture a 'close' election. Election fraud is divided into terciles. These categories can be thought of as relatively clean (*election fraud* is between -2.33 and 0.5), moderately manipulated (0.5 to 1.46) and heavily manipulated (1.46 to 3.2). Two patterns appear in the data. First, protest initiation is most likely when incumbent vote-share is low and fraud is high. This is expected under both models. For the regime-weakness model, this is taken as a sign that opposition actors launch protests instrumentally against the weakest (i.e. least popular) incumbents. For the regime-strength model, this pattern could emerge as electoral manipulation focuses mass grievances. However, we do not observe a consistent increase in protest likelihood as manipulation increases, as the regime-weakness model would predict. Instead, we see relatively consistent rates of protest initiation at medium vote-share across levels of manipulation. And, at high incumbent vote-shares, there is even a decrease in protest initiation as manipulation increases from moderate to high. This comports with the mixed evidence found in prior research on protest initiation and manipulation, and is evidence that the regime-strength model is on a plausible foundation (specifically, that protests can occur even when the incumbent is predicted to be 'strong' under either model). Consider the cell where vote-share is high and election fraud is low---this is the strongest (i.e. clearly popular) type of regime in the regime-weakness model. Nevertheless, more than a quarter of such cases are protested. This is not so different from the cell which is most likely to contain strong regimes in the regime-strength model (high vote-share, high manipulation), in which thirty-two percent of cases launch protest. While not dispositive, this result indicates that the regime-strength model and regime-weakness models are equally compatible with patterns of protest initiation, as expected.
 
 
 
@@ -344,20 +377,20 @@ p.hist.fraud <- ggplot(nelda2.sub, aes(x = v2elirreg.inv)) + geom_histogram(bins
 nelda2.sub <- nelda2.sub %>% mutate(fraud_transform = v2elirreg.inv - min(v2elirreg.inv, na.rm=T) + 1)
 nelda2.sub <- nelda2.sub %>% mutate(vs_fraud_ratio = winner.share.upd / fraud_transform)
 
- ggplot(nelda2.sub, aes(x = vs_fraud_ratio, y= jitter(any.ecav.protest))) + geom_point(aes(color = v2elirreg.inv)) + xlab("Ratio") + theme_bw() + scale_color_viridis_b()
+# ggplot(nelda2.sub, aes(x = vs_fraud_ratio, y= jitter(any.ecav.protest))) + geom_point(aes(color = v2elirreg.inv)) + xlab("Ratio") + theme_bw() + scale_color_viridis_b()
  
-  ggplot(nelda2.sub, aes(x = v2elirreg.inv, y= jitter(any.ecav.protest))) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Fraud") + theme_bw()
+#  ggplot(nelda2.sub, aes(x = v2elirreg.inv, y= jitter(any.ecav.protest))) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Fraud") + theme_bw()
   
-   ggplot(nelda2.sub, aes(x = v2elirreg.inv, y= n.events.post)) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Fraud") + theme_bw()
+#   ggplot(nelda2.sub, aes(x = v2elirreg.inv, y= n.events.post)) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Fraud") + theme_bw()
  
-  ggplot(nelda2.sub, aes(x = winner.share.upd, y= jitter(any.ecav.protest))) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Winner share") + theme_bw()
+#  ggplot(nelda2.sub, aes(x = winner.share.upd, y= jitter(any.ecav.protest))) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Winner share") + theme_bw()
   
   
-    ggplot(nelda2.sub, aes(x = winner.share.upd, y= n.events.post)) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Winner share") + theme_bw()
+#    ggplot(nelda2.sub, aes(x = winner.share.upd, y= n.events.post)) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("Winner share") + theme_bw()
 
   
   
-   ggplot(nelda2.sub, aes(x = vs_fraud_ratio, y= d.events.num)) + geom_point(aes(color = v2elirreg.inv)) + xlab("Election fraud") + theme_bw() + scale_color_viridis_b()
+#   ggplot(nelda2.sub, aes(x = vs_fraud_ratio, y= d.events.num)) + geom_point(aes(color = v2elirreg.inv)) + xlab("Election fraud") + theme_bw() + scale_color_viridis_b()
  
   ggplot(nelda2.sub, aes(x = v2elirreg.inv, y= d.events.num)) + geom_point(aes(color = winner.share.upd)) + scale_color_continuous_divergingx(palette = "ArmyRose", mid = .5) +  xlab("Fraud") + theme_bw()
  
@@ -365,44 +398,44 @@ nelda2.sub <- nelda2.sub %>% mutate(vs_fraud_ratio = winner.share.upd / fraud_tr
 #  ggplot(nelda2.sub, aes(y = v2elirreg.inv, x= max_size)) + geom_point(aes(color = factor(inc.fav.cancel.protests))) + xlab("max size") + theme_bw()
   library(colorspace)
   
- ggplot(nelda2.sub %>% filter(inc.lose != 1) , aes(x=winner.share.upd, y=n.events.post, color = v2elirreg.inv)) +
-    geom_point() +
-    scale_color_continuous_divergingx(palette = "ArmyRose", n_interp = 11, cmax1 = 500, cmax2 = 500) +
-    theme_bw() +
-   coord_cartesian(ylim = c(0, 100))
+# ggplot(nelda2.sub %>% filter(inc.lose != 1) , aes(x=winner.share.upd, y=n.events.post, color = v2elirreg.inv)) +
+#    geom_point() +
+#    scale_color_continuous_divergingx(palette = "ArmyRose", n_interp = 11, cmax1 = 500, cmax2 = 500) +
+#    theme_bw() +
+#   coord_cartesian(ylim = c(0, 100))
  
  
    
- ggplot(nelda2.sub %>% filter(inc.lose != 1), aes(x=winner.share.upd, y=jitter(any.ecav.protest), color = v2elirreg.inv)) +
-    geom_point() +
-    scale_color_continuous_divergingx(palette = "ArmyRose", n_interp = 11, cmax1 = 500, cmax2 = 500) +
-    theme_bw()
+# ggplot(nelda2.sub %>% filter(inc.lose != 1), aes(x=winner.share.upd, y=jitter(any.ecav.protest), color = v2elirreg.inv)) +
+#    geom_point() +
+#    scale_color_continuous_divergingx(palette = "ArmyRose", n_interp = 11, cmax1 = 500, cmax2 = 500) +
+#    theme_bw()
  
  
-  ggplot(nelda2.sub %>% filter(inc.lose != 1 & d.events.num > 0), aes(x=winner.share.upd, y=d.events.num, color = v2elirreg.inv)) +
-    geom_point(aes(shape = as.factor(protest.success))) +
-    scale_color_continuous_divergingx(palette = "ArmyRose", n_interp = 11, cmax1 = 500, cmax2 = 500) +
-    theme_bw()
+#  ggplot(nelda2.sub %>% filter(inc.lose != 1 & d.events.num > 0), aes(x=winner.share.upd, y=d.events.num, color = v2elirreg.inv)) +
+#    geom_point(aes(shape = as.factor(protest.success))) +
+#    scale_color_continuous_divergingx(palette = "ArmyRose", n_interp = 11, cmax1 = 500, cmax2 = 500) +
+#    theme_bw()
   
 
   library(latticeExtra)
   # showing data points on the same color scale 
-levelplot(any.ecav.protest ~ v2elirreg.inv * winner.share.upd, nelda2.sub %>% filter( protest.success == 0 & inc.lose == 0), 
+levelplot(any.ecav.protest ~ winner.share.upd * v2elirreg.inv, nelda2.sub %>% filter( protest.success == 0 & inc.lose == 0), 
           panel = panel.levelplot.points, cex = 1.2
     ) + 
     layer_(panel.2dsmoother(..., n = 300))
 
 
   # showing data points on the same color scale 
-levelplot(d.events.num ~ v2elirreg.inv * winner.share.upd, nelda2.sub %>% filter(d.events.num > 0 & protest.success == 0 & inc.lose == 0), 
+levelplot(d.events.num ~ winner.share.upd * v2elirreg.inv, nelda2.sub %>% filter(d.events.num > 0 & protest.success == 0 & inc.lose == 0), 
           panel = panel.levelplot.points, cex = 1.2
     ) + 
     layer_(panel.2dsmoother(..., n = 300))
 
 
-  testlogit <- glm(protest.success ~ v2elirreg.inv*winner.share.upd + presidential + inc.termlimit.num + n.events.pre, data = nelda2.sub)
-summary(testlogit)
-sjPlot::plot_model(testlogit, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [-.08, 1.96]"))
+#  testlogit <- glm(protest.success ~ v2elirreg.inv*winner.share.upd + presidential + inc.termlimit.num + n.events.pre, data = nelda2.sub)
+#summary(testlogit)
+#sjPlot::plot_model(testlogit, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [-.08, 1.96]"))
 ```
 
 
@@ -424,22 +457,22 @@ I operationalize electoral manipulation using this variable, rather than alterna
 
 ## Control variables
 
+The theory suggests that increasing election manipulation is indicative of regime strength, but an actor's strength---like its close analogue, power [@dahl_concept_1957]---can only be measured relative to that of another. An incumbent who produces a high level of election manipulation may be 'strong' when facing a fragmented and unpopular opposition, but would be less so if the opposition were more formidable. As a result, it is necessary to control for potential indicators of opposition strength.
 
-It is necessary to condition the models on whether or not the incumbent party claimed victory in the election, due to the structure of the vote-share data in V-Dem. Vote-share data is provided for the winning party without reference to its position as incumbent or challenger. From the point of view of those considering anti-incumbent protest, for instance, the information conveyed by a large opposition vote-share is much different from that conveyed by a large winning vote-share. Consequently, in all models, I condition for whether the incumbent party lost, based on coding in NELDA. In the binary models of Hypothesis 1, I control for incumbent loss as a standalone variable or in interaction with the main explanatory variables.
+First, I include the *number of pre-election protests* counted in the ECAV dataset, which is likely to be an important possible confounder; more numerous pre-election protest may affect the level of election fraud (as the deterrence logic predicts) as well as being directly tied to the likelihood of post-election protest. Next, the models of protest duration include a measure of the *median size of protest*, calculated using ECAV data.^[ECAV data codes protest size as a categorical variable, ranging from 1 (< 10 participants) to 5 (> 10,000). I take the median size category of all the events in the protest wave as a measure of average protest size.] This is important as a control for opposition strength, as well as for the possibility that incumbents might tolerate smaller protests. Since non-democratic governments may be able to adjust the electoral calendar strategically, to disrupt opposition coordination [@nygardTimingMattersImpact2020], I include a variable from NELDA that indicates *off-schedule elections*. 
 
+Since higher repressiveness may weaken or intensify opposition [@chenowethStateRepressionNonviolent2017], I include a lagged measure of physical integrity index from V-Dem (v2x_clphy), and its square term. Indicators of government *control over civil society* (the 'v2cseeorgs' variable from V-Dem), the proportion of national political parties with *permanent party organizations* (V-Dem's 'v2psorgs'), *legislative constraints* on the executive (V-Dem variable 'v2xlg_legcon', and the availability of *alternative sources of information* ('v2x_freexp_altinf' from V-Dem) are also employed as straightforward indicators of opposition strength. Since urban areas can make electoral manipulation more difficult [@ziblatt2009;@larreguy2016parties] while also making protest more likely [@Wallace2013a], I also include data on *urbanization* taken from the United Nations [@DepartmentofEconomicandSocialAffairsPopulationDivision2019]. 
 
-For the models of protest duration, I exclude all cases where the incumbent lost the election outright. This limits the observations to those that fit the population of interest: protest following an election in which the incumbent claimed victory, possibly through reliance on election fraud.^[Excluding cases where incumbents stepped down after losing an election avoids introducing measurement error in the dependent variable, due to a quirk of the ECAV dataset, which codes the 'side' of the protest (pro- or anti-government) as missing during the period between an election and the swearing in of a new government in cases where the incumbent loses. Including these cases thus runs the risk of conflating pro- and anti-incumbent protest, along with cases where protesters goals are genuinely unknown. However, excluding them also influences the interpretation of the results from these models. Threats to inference from this section are evaluated in more detail in the discussion section.]  
+Other controls are included for factors that might separately cause variation in electoral manipulation and protest duration. First, a variable from NELDA is used to indicate *presidential* elections, since these may include both higher levels of manipulation [@simpser2013] and a greater risk of protest. Another NELDA variable indicates if the incumbent executive is not running due to *term limits*, which may produce elite fragmentation [@hale_patronal_2014] that affects both protest risk and electoral manipulation. De facto *judicial independence* [@Linzer2015] is included, since judicial independence can reduce manipulation [@Harvey2022] and protest risk [@chernykh2014]. The *lagged GDP growth rate*, taken from V-Dem, is used to capture economic grievances: lower GDP growth rates, especially negative ones, should be expected to increase citizens' sense of grievance (increasing protest risk, but potentially deterring manipulation under the regime-weakness framework).
 
-The models incorporate several potential confounding variables, in addition to the *election fraud* variable described above. The *lagged GDP growth rate*, taken from V-Dem, is used to capture economic grievances: lower GDP growth rates, especially negative ones, should be expected to increase citizens' sense of grievance. The winning party's *vote-share* is also taken from the V-Dem dataset.^[This variable has considerable missingness, which I reduced in part by updating missing values in V-Dem using data from Wikipedia, where links to official sources were available, and Psephos.]
+In addition, the literature on the diffusion of electoral protest holds that successful electoral protest in one country increases the likelihood of electoral protest in similar countries nearby due to opposition learning [@Bunce2010;@Beissinger_2007]. Such a dynamic could plausibly increase the likelihood and severity of protest in a nearby country, while also reducing the incumbent's use of fraud. I control for this using each country's geopolitical region as coded in Teorell et al [-@qog_teorell], in conjunction with binary variables indicating a successful protest movement from NELDA. A 'successful protest' is recorded if a protest movement resulted in either a new election being run or the incumbent stepping down. The *regional diffusion* dummy variable takes on a value of one for all countries in the same region as a successful protest, for elections within one calendar year of the successfully overturned election.^[For example, the variable takes on a positive value for elections held in the post-communist region, within one year of the September 24, 2000 election in Serbia that sparked the 'Bulldozer Revolution'. All told there are 14 successful electoral protests in the dataset: Bulgaria 1990, Burkina Faso 1997, Lesotho 1998, Cote d'Ivoire 2000 and 2010, Peru 2000, Serbia 2000, Mali 2002, Georgia 2003, Ukraine 2004, Azerbaijan 2005, Kyrgyzstan 2005, Haiti 2006, and Cameroon 2007.]    
 
-As identified in prior research, other factors that may influence both fraud and protest are included as controls variables. The repressive capacity of the government [@Davenport2019] is measured using the physical integrity index from V-Dem (v2x_clphy), and its square term. Indicators of government *control over civil society* (the 'v2cseeorgs' variable from V-Dem), the proportion of national political parties with *permanent party organizations* (V-Dem's 'v2psorgs'), de facto *judicial independence* [@Linzer2015] and the available of *alternative sources of information* ('v2x_freexp_altinf' from V-Dem) are also employed. Since urban areas can make electoral manipulation more difficult [@ziblatt2009;@larreguy2016parties] while also making protest more likely [@Wallace2013a], I also include data on *urbanization* taken from the United Nations [@DepartmentofEconomicandSocialAffairsPopulationDivision2019]. All models include *legislative constraints* on the executive, a V-Dem variable which captures the extent to which the legislative body in the country acts independently in practice to limit executive power.  
+<!-- I include dummy variables that provide a categorical evaluation of state capacity. These are taken from the ordinal version of the V-Dem variable "state source of fiscal revenue" (v2stfisccap). If the V-Dem data codes a state as not capable of raising revenue or primarily relying on loans and foreign aid, I code it as a *weak state*. If the state is described as primarily relying on resource rents and expropriation, I code it is a *rentier state*. States that rely primarily on taxes on property or economic transactions are coded as *tax states*. This distinction is relevant since access to natural resource rents may both make protest less likely and repression more effective [@Girod2018].   -->
 
-In addition, the literature on the diffusion of electoral protest holds that successful electoral protest in one country increases the likelihood of electoral protest in similar countries nearby [@Bunce2010;@Beissinger_2007]. Such a dynamic could plausibly increase the likelihood of protest in a nearby country, while also reducing the incumbent's use of fraud. I control for this using each country's geopolitical region as coded in Teorell et al [-@qog_teorell], in conjunction with binary variables indicating a successful protest movement from NELDA. A 'successful protest' is recorded if a protest movement resulted in either a new election being run or the incumbent stepping down. The *regional diffusion* dummy variable takes on a value of one for all countries in the same region as a successful protest, for elections within one calendar year of the successfully overturned election.^[For example, the variable takes on a positive value for elections held in the post-communist region, within one year of the September 24, 2000 election in Serbia that sparked the 'Bulldozer Revolution'. All told there are 14 successful electoral protests in the dataset: Bulgaria 1990, Burkina Faso 1997, Lesotho 1998, Cote d'Ivoire 2000 and 2010, Peru 2000, Serbia 2000, Mali 2002, Georgia 2003, Ukraine 2004, Azerbaijan 2005, Kyrgyzstan 2005, Haiti 2006, and Cameroon 2007.]     
+Lastly, the incumbent party's *vote-share* is also taken from the V-Dem dataset.^[This variable has considerable missingness, which I reduced in part by updating missing values in V-Dem using data from Wikipedia, where links to official sources were available, and Psephos.] The original V-Dem variable indicates the *winner's* vote-share. However, I exclude all cases where the incumbent lost the election outright. This limits the observations to those that fit the population of interest: protest following an election in which the incumbent claimed victory, possibly through reliance on election fraud; it also ensures that the vote-share variable captures the incumbent's position. 
 
+Excluding cases where incumbents stepped down after losing an election avoids introducing measurement error in the dependent variable, due to a quirk of the ECAV dataset, which codes the 'side' of the protest (pro- or anti-government) as missing during the period between an election and the swearing in of a new government in cases where the incumbent loses. Including these cases thus runs the risk of conflating pro- and anti-incumbent protest, along with cases where protesters goals are genuinely unknown. However, excluding them also influences the interpretation of the results from these models. Threats to inference from this section are evaluated in more detail in the discussion section. 
 
-Several other binary control variables are also included. First, a variable from NELDA is used to indicate *presidential* elections, since these may include both higher levels of manipulation [@simpser2013] and a greater risk of protest. Another NELDA variable indicates if the incumbent executive is not running due to *term limits* [@hale_patronal_2014]. I include dummy variables that provide a categorical evaluation of state capacity. These are taken from the ordinal version of the V-Dem variable "state source of fiscal revenue" (v2stfisccap). If the V-Dem data codes a state as not capable of raising revenue or primarily relying on loans and foreign aid, I code it as a *weak state*. If the state is described as primarily relying on resource rents and expropriation, I code it is a *rentier state*. States that rely primarily on taxes on property or economic transactions are coded as *tax states*. This distinction is relevant since access to natural resource rents may both make protest less likely and repression more effective [@Girod2018]. Since strong non-democratic governments may be able to adjust the electoral calendar strategically (to affecting both election manipulation and protest risk), I include a variable from NELDA that indicates *off-schedule elections*.   
-
-I include the *number of pre-election protests* counted in the ECAV dataset, which is likely to be an important possible confounder; more numerous pre-election protest may affect the level of election fraud (as the deterrence logic predicts) as well as being directly tied to the likelihood of post-election protest. Finally, in the models of protest duration, I also include a measure of the *median size of protest*, calculated using ECAV data.^[ECAV data codes protest size as a categorical variable, ranging from 1 (< 10 participants) to 5 (> 10,000). I take the median size category of all the events in the protest wave as a measure of average protest size.] This is important as a control for the possibility that incumbents could tolerate smaller protests, as discussed above.
 
 Summary statistics for all of these variables are shown in the appendix. To address concerns about multicollinearity, I also present models in the appendix that exclude control variables associated with pre-election protest.
 
@@ -472,7 +505,7 @@ model.binary_noint <- glm(any_protest ~ inc.lose_clean + v2elirreg.inv + winner.
 
 model.binary.base <-  glm(any_protest ~ winner.share.upd*v2elirreg.inv*inc.lose_clean + presidential, data = nelda2.sub, family = binomial(link = "logit"))
 
-model.binary.full <- glm(any_protest ~ lji.lag + legcon.1lag + gdpgro.1lag + altinf.1lag  +  + osorg.1lag   +    winner.share.upd*v2elirreg.inv*inc.lose_clean   + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + n.events.pre + rentierstate + taxstate + unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub)
+model.binary.full <- glm(any_protest ~ lji.lag + legcon.1lag + gdpgro.1lag + altinf.1lag  +  + osorg.1lag   +    winner.share.upd*v2elirreg.inv*inc.lose_clean   + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + n.events.pre +  unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub)
 
 
 
@@ -560,16 +593,18 @@ nelda2.sub <- nelda2.sub %>% mutate(surv_status_censor_assume = ifelse(d.events.
 
 
 
+cox_base <- coxph(Surv(d.events.num, surv_status) ~   winner.share.upd*v2elirreg.inv   + n.events.post , data = nelda2.sub %>% filter(inc.lose != "1" &  n.events.post > 0))
+summary(cox_base)
 
 
 
 
-cox1 <- coxph(Surv(d.events.num, surv_status) ~  legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag +  winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate +  unscheduled_election + regional_success_lag + v2elirreg.inv   + n.events.post , data = nelda2.sub %>% filter(inc.lose != "1" &  n.events.post > 0))
+cox1 <- coxph(Surv(d.events.num, surv_status) ~  legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag +  winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct  +  unscheduled_election + regional_success_lag + v2elirreg.inv   + n.events.post , data = nelda2.sub %>% filter(inc.lose != "1" &  n.events.post > 0))
 summary(cox1)
 
 
 
-cox1.cen <- coxph(Surv(d.events.num, surv_status_censor_assume) ~  legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag +  winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate +  unscheduled_election + regional_success_lag + v2elirreg.inv   + n.events.post , data = nelda2.sub %>% filter(inc.lose == "0" & n.events.post > 0))
+cox1.cen <- coxph(Surv(d.events.num, surv_status_censor_assume) ~  legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag +  winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct  +  unscheduled_election + regional_success_lag + v2elirreg.inv   + n.events.post , data = nelda2.sub %>% filter(inc.lose == "0" & n.events.post > 0))
 summary(cox1.cen)
 
 
