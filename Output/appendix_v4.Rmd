@@ -824,5 +824,3 @@ modelsummary(models2, output = "kableExtra",  stars = T, title = 'Table 3: Logit
 
 
 
-
-
