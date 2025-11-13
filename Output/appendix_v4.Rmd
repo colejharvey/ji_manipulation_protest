@@ -539,7 +539,7 @@ Table \@ref(tab:fraud-loss) shows the results. Model 6 shows how structural fact
 
 \newpage
 
-# Incumbent ousted by protest
+# Incumbent defeat by protest
 
 The classic model of election manipulation as an indicator of weakness would suggest that incumbents who rely more on manipulation will be more likely to fall when protest movements do emerge. The main text does not examine successful protests, which are a small minority of cases, in order to avoid measurement error in the duration models. Successful protest is, instead, examined here; there is little to suggest that incumbents who manipulate more are more vulnerable to defeat by protesters.   
 
