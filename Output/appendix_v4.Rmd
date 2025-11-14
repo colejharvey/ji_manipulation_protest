@@ -199,106 +199,24 @@ datasummary_skim(incl.vars, output = "kableExtra", title = "Summary statistics a
 ```
 
 
-# Fraud and the likelihood of protest
+\newpage
 
 
+# Robustness check: Two alternative measures of election manipulation
 
+To ensure that the results presented in the main text are not idiosyncratic to the chosen measure of election fraud, this section replaces that measure with two alternative indicators of election integrity. The first variable is `v2xel_frefair,' from V-Dem, which is a comprehensive indicator of quality of the electoral process, including measures of electoral management body autonomy and capacity, vote-buying, intimidation, fraud, and an overall assessment of the fairness of the election. This is a retroactively coded, expert assessment (as is the variable in the main text), but captures a wider array of possible abuses of electoral integrity.
 
-Table \@ref(tab:logit-table) shows the results for Hypothesis 1. Model 1 is a base model, where incumbent loss, winner vote-share, and *election fraud* are standalone variables. In keeping with the general (though inconsistent) findings in the prior literature, there is a significant positive relationship between fraud severity and the likelihood of protest initiation. The winner's claimed margin of victory is negatively associated with protest initiation. Model 2 includes the three-way interaction between *election fraud*, incumbent loss, and winning vote-share, with no controls other than a dummy variable for *presidential elections*. This allows for the largest possible sample size, and shows that the coefficient signs are consistent with those of the full Model 3. 
+The second measure reflects contemporaneous judgments by election observers, as reported in the Dataset on International Election Monitoring, or DIEM [@kelley2011]. I use the variable "Explicit cheating," as a parallel to the V-Dem "intentional irregularities" variable from the main text. This variable is categorical, and so captures less variation than the original measure. However, it helps address the concern that the findings could be systematically biased by the human coders utilized in the V-Dem project [@Little_Meng_2024]. While there is some evidence that such bias is small [@weidmann2023], it is still useful to check the V-Dem coders' assessments against election monitors' reports. 
 
+Both variables produce the same substantive results in the Cox proportional hazards models of protest duration; more election manipulation is associated with shorter protests.
 
-
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-nelda2.sub <- nelda2.sub %>% mutate(any_protest = ifelse(d.events.num > 0, 1, 0))
-#nelda2.sub <- nelda2.sub %>% mutate(no_size = ifelse(max_size == 0, 1, 0))
-
-
-model.binary_noint <- glm(any_protest ~ inc.lose_clean + v2elirreg.inv + winner.share.upd, data = nelda2.sub, family = binomial(link = "logit"))
-
-model.binary.base <-  glm(any_protest ~ winner.share.upd*v2elirreg.inv*inc.lose_clean + presidential, data = nelda2.sub, family = binomial(link = "logit"))
-
-model.binary.full <- glm(any_protest ~ lji.lag + legcon.1lag + gdpgro.1lag + altinf.1lag  +  + osorg.1lag   +    winner.share.upd*v2elirreg.inv*inc.lose_clean   + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + n.events.pre +  unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub)
-
-
-
-
-
-
-plot_binary_margin_typ_n <- sjPlot::plot_model(model.binary.full, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [.08, 2.07]", "inc.lose_clean"))
-plot_binary_margin_typ_n <- plot_binary_margin_typ_n +  labs(x = "Winner's vote-share", y = "Predicted probability", title = "Predicted probability of protest", color = "Election fraud") + theme_bw()
-```
-
-
-
-```{r logit-table, echo=FALSE}
-models2 <- list()
-models2[['Model 1']] <- model.binary_noint
-models2[['Model 2']] <- model.binary.base
-models2[['Model 3']] <- model.binary.full
-#models2[['Model 6']] <- model.margin.binary_noc
-
-modelsummary(models2, output = "default",  stars = T, title = 'Table 3: Logit models of protest occurrence', gof_omit = c("Log|RMSE"), coef_map = c("(Intercept)" = "(Intercept)",
-             "inc.lose_clean2" = "Incumbent loss",
-             "v2elirreg.inv" = "Election fraud",
-             "winner.share.upd" = "Winner vote-share",
-"winner.share.upd:v2elirreg.inv" = "Winner vote-share:Election fraud",
-"winner.share.upd:inc.lose_clean2" = "Winner vote-share:Inc. loss",
-"v2elirreg.inv:inc.lose_clean2" = "Election fraud:Inc. loss",
-"winner.share.upd:v2elirreg.inv:inc.lose1" = "Election fraud:Winner vote-share:Inc. loss",
-  "lji.lag" = "Judical independence (lag)",                                                                 "legcon.1lag" = "Leg. constraints (lag)",                                                                 "gdpgro.1lag" = "GDP growth rate (lag)",                                                                   "altinf.1lag" = "Alternative info. (lag)", 
-                 "osorg.1lag" = "Civil soc. openness (lag)",
-                 "inc.termlimit.num" = "Incumbent term-limited", 
-                 "libdem.1lag" = "Liberal democracy index (lag)", 
-                 "urban.pct" = "Urbanization", 
-                 "rentierstate1" = "Rentier state", 
-                 "taxstate1" = "Tax state", 
-                "presidential1" = "Presidential",
-                 "unscheduled_election1" = "Off-schedule election",
-                 "n.events.pre" = "Number of pre-election protests", 
-                 "physinteg.1lag" = "Phys. integrity index (lag)",
-                 "physintlag.sq" = "Phys. int. lag squared", 
-                 "regional_success_lag" = "Regional protest diffusion",
-
-                 "median.participants" = "Median protest participants",
- 
-                "v2elirreg.inv:winner.share.upd"= "Election fraud:Winner vote-share")
-                 ) 
-
-#reg_table |> tab_options(
-#  latex.use_longtable = TRUE, 
-#  data_row.padding = px(5)
-#  ) 
-```
-
-
-
-
-Model 3 is the main model, which includes the full set of controls. Given the complexity of the model, Figure \@ref(fig:margin-prob-fig) illustrates the effects of election fraud on protest risk across various levels of winning vote-share and incumbent loss^[All other variables constant at their means (continuous variables) or modes (categorical variables).]. The values for election fraud represent one standard deviation above and below the mean value, or about the 15th and 85th percentiles, respectively. 
-
-The direction of the effect supports Hypothesis 1. When an incumbent claims victory (left panel) and their vote-share is low, electoral protest is significantly likelier when fraud is elevated than when the election is relatively clean. Furthermore, protest against winning incumbents is significantly likelier when fraud is high and vote-shares are low, compared to an election with an equivalent level of fraud but high claimed vote-shares. As noted above, such a finding could be consistent with either the regime-weakness or regime-strength models of manipulation, under different conceptualizations of protest. To distinguish between the two, we turn to the models of protest duration.
-
-
-
-```{r margin-prob-fig, fig.cap="Fraud, winning vote-share, and probability of protest initiation", fig.height=5, echo=FALSE, message=FALSE, fig.pos='H'}
-plot_binary_margin_typ_n$data$facet <-  ifelse(plot_binary_margin_typ_n$data$facet == "1", "Incumbent won", "Incumbent lost")
-
-plot_binary_margin_typ_n
-```
-
-
-
-
-# Alternative measures of election manipulation
 
 ## Overall election integrity
 
-To ensure that the results presented in the main text are not biased by the chosen measure of election fraud, this section replaces that measure with a broader indicator of election integrity. This variable is `v2xel_frefair,' from V-Dem, which is a comprehensive indicator of quality of the electoral process, including measures of electoral management body autonomy and capacity, vote-buying, intimidation, fraud, and an overall assessment of the fairness of the election. This variable ranges from 0 to 1, with higher values indicating freer and fairer elections. The models presented below utilize this variable in place of the main measure of election fraud, while retaining all other control and explanatory variables, using the ECAV data on protest. Since the dependent variable of these models is on an inverse scale, compared to the variable *intentional irregularities*, we should expect to see coefficients for key variables take on opposite-signed values from the models in the main text.
+The 'election integrity' variable from V-Dem (v2xel_frefair) ranges from 0 to 1, with higher values indicating freer and fairer elections. Note that the sign of this variable is the inverse of the variable used in the main text. The models presented below utilize this variable in place of the main measure of election fraud, while retaining all other control and explanatory variables. 
 
 
-The same interaction relationship between overall election integrity, incumbent vote-share, and protest as is shown for fraud in the main text. That is, less free-and-fair elections are only associated with a higher protest risk at low levels of incumbent vote-share.
-
+The same interaction relationship between overall election integrity, incumbent vote-share, and protest as is shown for fraud in the main text. Table \@ref(tab:cox-models-tab-overall) shows that cleaner elections are associated with a slower end to protest movements. When elections are more unfair overall, incumbents are able to more quickly bring protest to an end. Figure \@ref(fig:margin-dur-fig-overall) shows that this effect is significant in interaction with low-to-moderate incumbent vote-shares.
 
 
 
@@ -320,7 +238,7 @@ model.margin.binary.int.full <- glm(any_protest ~ lji.lag + legcon.1lag + gdpgro
 
 
 
-```{r logit-table2, echo=FALSE}
+```{r logit-table2, echo=FALSE, include = FALSE}
 models2 <- list()
 models2[['Model 1']] <- model.margin.binary.full
 models2[['Model 2']] <- model.margin.binary.int.full
@@ -345,13 +263,13 @@ modelsummary(models2,  stars = T, title = 'Logit models of protest occurrence', 
 
 
 
-```{r overall-binary, fig.cap="Overall election integrity, winning vote-share, and probability of protest initiation", fig.height=6, echo=FALSE, message=FALSE, fig.align='center'}
+```{r overall-binary, fig.cap="Overall election integrity, winning vote-share, and probability of protest initiation", fig.height=6, echo=FALSE, message=FALSE, fig.align='center', include=FALSE, warning=FALSE}
 sjPlot::plot_model(model.margin.binary.int.full, type = "pred", terms = c("winner.share.upd", "v2xel_frefair [.12, .46]"))  +  labs(x = "Incumbent vote-share", y = "Predicted probability", title = "Predicted probability of protest", color = "Election integrity") + theme_bw()
 
 
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(d.events.num > 0, 1, NA))
 nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(inc.replaced.prot == 1, 0, surv_status))
@@ -403,23 +321,22 @@ modelsummary::modelsummary(models3, gof_omit = "AIC|BIC|Log", longtable=F, stars
 ```
 
 
-```{r margin-dur-fig-overall, fig.cap="Fraud, winning vote-share, and duration of protest", fig.height=7, echo=FALSE, message=FALSE, fig.pos='H'}
+```{r margin-dur-fig-overall, fig.cap="Fraud, winning vote-share, and duration of protest", fig.height=7, echo=FALSE, message=FALSE, fig.pos='H', warning=FALSE}
 p.duration.margin
 ```
 
 
-Likewise, the models of protest movement survival are also in line with those in the main text. Table \@ref(tab:cox-models-tab-overall) shows that cleaner elections are associated with a slower end to protest movements (here, a negative coefficient). When elections are more unfair overall, incumbents are able to more quickly bring protest to an end. Figure \@ref(fig:margin-dur-fig-overall) shows that this effect is significant in interaction with low-to-moderate incumbent vote-shares.
 
-The two sets of models all replace a measure of *election fraud* with a broader measure of overall election integrity. In all cases, the results broadly confirm the incumbent-strength model and are unsupportive of the deterrence model.
+
 
 \newpage
 
 
 ## Election observers' reports of fraud
 
-One obstacle to the validity of the findings could be systematic bias by the human coders utilized in the V-Dem project [@Little_Meng_2024]. While there is some evidence that such bias is small [@weidmann2023], and election monitors can also be subject to biases [@kelley2012], it may be useful to check the V-Dem coders' assessments against election monitors' reports. To do so, I make use of the Dataset on International Election Monitoring [@kelley2011], or DIEM. This dataset codes the judgments of international election monitoring missions as categorical variables. I use the variable "Explicit cheating" as a parallel to the V-Dem "intentional irregularities" variable. The explicit cheating variable is categorical, ranging from the 0 for the cleanest elections to 3 for the most fraudulent. While this data is closely tied to the facts on the ground, as reported by election monitors, it covers a much smaller range of cases than V-Dem: of the 661 observations in the full dataset, 471 do not have DIEM values. This is, in part, due to differences in the time periods covered (DIEM ranges from 1980 to 2004, while the main dataset covers 1989 - 2012). This problem is compounded by the fact that most elections in the dataset go un-protested. Of the 156 cases where protest occurs, 110 lack data in DIEM.  While this limits the usefulness of the DIEM variable, it can still provide some confirmatory information for the main analysis.
+This dataset codes the judgments of international election monitoring missions as categorical variables. The explicit cheating variable is categorical, ranging from the 0 for the cleanest elections to 3 for the most fraudulent. While this data is closely tied to the facts on the ground, as reported by election monitors, it covers a much smaller range of cases than V-Dem: of the 661 observations in the full dataset, 471 do not have DIEM values. This is, in part, due to differences in the time periods covered (DIEM ranges from 1980 to 2004, while the main dataset covers 1989 - 2012). This problem is compounded by the fact that most elections in the dataset go un-protested. Of the 156 cases where protest occurs, 110 lack data in DIEM.  While this limits the usefulness of the DIEM variable, it can still provide some confirmatory information for the main analysis.
 
-Table \@ref(tab:diem-table-1) reports a model where the DIEM measure as the explanatory variable in a survival model of protest movements. Here the difficulty with missingness becomes apparent, with only 39 observations in the model. Given the small number of observations, it is even more reassuring that the positive relationship between fraud and a quick end to protest movements is apparent.
+Table \@ref(tab:diem-table-1) reports two model where the DIEM measure as the explanatory variable in a survival model of protest movements, both as standalone variable and in interaction with the incumbent's vote-share. Here the difficulty with missingness becomes apparent, with only 44 observations in the models. Figure \@ref(fig:margin-dur-fig-diem) shows that higher 'explicit cheating' has a significant effect on protest duration around the fifty-percent vote-share mark, though the effect is small. Given the small number of observations, it is even more reassuring that the expected relationships between fraud and a quick end to protest movements are detected.
 
 
 ```{r, echo=FALSE}
@@ -427,15 +344,19 @@ Table \@ref(tab:diem-table-1) reports a model where the DIEM measure as the expl
 
 
 
-cox1_diem <- coxph(Surv(d.events.num, surv_status) ~ legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + rentierstate + taxstate +  unscheduled_election + regional_success_lag + diem_explicheat_max   + n.events.post , data = nelda2.sub %>% filter(inc.lose == "0" &  n.events.post > 0))
+cox1_diem <- coxph(Surv(d.events.num, surv_status) ~ legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct +  unscheduled_election + regional_success_lag + diem_explicheat_max   + n.events.post , data = nelda2.sub %>% filter(inc.lose == "0" &  n.events.post > 0))
 #summary(cox1_diem)
 
+cox2_diem <- coxph(Surv(d.events.num, surv_status) ~  legcon.1lag + altinf.1lag +  osorg.1lag + gdpgro.1lag + natlpartyorg.lag + winner.share.upd   + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct +  unscheduled_election + regional_success_lag + winner.share.upd*diem_explicheat_max   + n.events.post , data = nelda2.sub %>% filter(inc.lose == "0" &  n.events.post > 0))
+summary(cox2_diem)
 
 ```
 
 ```{r diem-table-1, echo=FALSE, message=FALSE, warning=FALSE}
 models <- list()
 models[['Model 5']] <- cox1_diem
+models[['Model 6']] <- cox2_diem
+
 
 modelsummary(models, output = "kableExtra",  stars = T, title = 'Models using DIEM measure of election fraud',  coef_rename = 
                c("jucon.1lag" = "Judical independence (lag)", "legcon.1lag" = "Leg. constraints (lag)", 
@@ -446,20 +367,34 @@ modelsummary(models, output = "kableExtra",  stars = T, title = 'Models using DI
                  "urban.pct" = "Urbanization", "rentierstate" = "Rentier state", "taxstate" = "Tax state",
                  "n.events.massmob.pre" = "Number of pre-election protests", "median.participants.mm.pre" = "Median size of pre-election protests", "unscheduled_election" = "Off-schedule election",
                  "rentierstate1" = "Rentier state", "taxstate1" = "Tax state", "n.events.pre" = "Number of pre-election protests", "unscheduled_election1" = "Off-schedule election", "physinteg.1lag" = "Phys. integrity index (lag)",
-                 "physintlag.sq" = "Phys. int. lag squared", "regional_success_lag" = "Regional protest diffusion", "antisys.1lag" = "Anti-system CS activity", "diem_explicheat_max" = "Explicit cheating (DIEM)", "n.events.post" = "N. post-election protests"
+                 "physintlag.sq" = "Phys. int. lag squared", "regional_success_lag" = "Regional protest diffusion", "antisys.1lag" = "Anti-system CS activity", "diem_explicheat_max" = "Explicit cheating (DIEM)", "n.events.post" = "N. post-election protests", "winner.share.upd" = "Incumbent vote-share"
                  )) %>% kable_styling(latex_options = "HOLD_position")
 ```
 
-# Further tests of deterrence logic: predicted and residual levels of fraud
-
-The main text focuses on elections where the incumbent claims victory. However, classic deterrence models also make predictions for incumbents who will voluntarily avoid electoral manipulation and accept a loss at the ballot box. Fully investigating this possibility should be the focus of future work, but some initial analyses are provided here in support of the claims made in the main paper. First, using all the observations in the dataset\textemdash winning and losing incumbents\textemdash to find the predicted level of election fraud for each case, using only structural variables (i.e. professionalization of the bureaucracy, electoral management body autonomy, urbanization, etc.). Factors associated with deterrence, like the number of pre-election protests are excluded. The fitted values and residuals from this first model are then used to check the implications of the theory in subsequent analysis. This model is simple OLS regression.
-
-Model 7 takes the residuals from the structural model as a dependent variable. This model is used to check whether pre-election protest risk is associated with incumbents over- or under-performing their expected level of manipulation based on structural factors. The deterrence model, which the main paper argues against, suggests that when the risk of anti-incumbent mobilization is higher, incumbents should be more likely to restrain themselves and under-deliver on manipulation. Since the residuals which are used as a DV are continuous, this is also an OLS model.
-
-The theory proposed in the main text implies that structural factors enabling manipulation should be significant *negative* predictors of incumbent loss, while measures of pre-election risk should not. That is, the theory expects that losing incumbents are more likely to structurally limited in the level of manipulation they can generate, rather than being structurally unconstrained but deterred by a more robust opposition. Model 8 in Table \@ref(tab:fraud-loss) takes incumbent defeat in the election as the dependent variable, with the expected value of manipulation (derived from the first model) as an explanatory variable. Pre-election protest and successful protests in the region are included as controls. Due to the binary dependent variable, this is a logit model.
 
 
+```{r margin-dur-fig-diem, fig.cap="Fraud, winning vote-share, and duration of protest (DIEM)", fig.height=7, echo=FALSE, message=FALSE, fig.pos='H', warning=FALSE}
+p.duration.margin_diem <- sjPlot::plot_model(cox2_diem, type = "pred", terms = c("winner.share.upd", "diem_explicheat_max [0, 3]"))  #This is the 10th and 90th quantiles
+p.duration.margin_diem <- p.duration.margin_diem +  labs(x = "Incumbent vote-share", y = "Hazard ratio", title = "Hazard ratio for protest movement end", color = "Explicit cheating (DIEM)") + theme_bw() + coord_cartesian(ylim = c(0, 20))
+```
 
+# Addressing concerns about selection effects
+
+## Predicted and residual levels of fraud
+
+The main text focuses on elections where the incumbent claims victory. However, classic regime-weakness models also predict that some incumbents who will voluntarily avoid electoral manipulation and accept a loss at the ballot box. If this is the case, it could introduce selection bias into the sample for the duration analyses in the main paper by sorting only the strongest incumbents into the sample that faces protest.
+
+Fully investigating this possibility should be the focus of future work, but some initial analyses are provided here to show that this is not the case. The analysis in this subsection proceeds in three steps. First, using all the observations in the dataset\textemdash winning and losing incumbents\textemdash I estimate the predicted level of election fraud for each case, using only structural variables (i.e. professionalization of the bureaucracy, electoral management body autonomy, urbanization, etc) in an OLS model. Factors associated with deterrence, like the number of pre-election protests are excluded. This should produce an estimate of the level of manipulation the incumbent could produce in the absence of strategic deterrence.
+
+Second, the residuals from this first model are then used as a dependent variable in second model. The residuals reflect the degree to which an incumbent over- or under-produced manipulation, relative to their expected baseline. If the deterrence interpretation is correct (which may lead to selection effects), the indicators of protest risk should be negatively associated with these residuals. In other words, higher protest risk should lead incumbents to under-produce manipulation. Under the regime-strength logic, we might expect the opposite, as incumbents work hard to build and indicate strength in riskier environments. This model is also an OLS model.
+
+Lastly, two logit models of incumbent loss are presented, using the fitted values from the first model and indicators of protest risk as predictors. The fitted values indicated the expected, structural level of electoral manipulation. Here, the deterrence logic would expect that indicators of pre-election protest risk will make incumbents more likely to lose, while the regime-strength model would expect that incumbent loss will be largely driven by structural factors.   
+
+Table \@ref(tab:fraud-loss) shows the results. Model 6 shows how structural factors are predictors of the level of observed manipulation. We observe some expected results; for instance, more autonomous EMBs and more professionalized bureaucracies are associated with lower fraud. Model 7 shows that indicators of protest risk\textemdash the number of pre-election protests, and the existence of a recent successful protest movement in the region\textemdash are not associated with lower fraud. In fact, just the opposite: incumbents appear to manipulate more heavily under riskier conditions. This is a key finding, and is evidence against the classic deterrent approach; it also suggests that weaker governments are not voluntarily dialing back manipulation to avoid protest, mitigating concerns about selection effects in the main models. 
+
+Models 8 and 9 take the fitted values from the first model and employ them as an explanatory variable for incumbent loss, while controlling for pre-election protest. As both models show, the more incumbents invest in the structural prerequisites of manipulation, the less likely they are to lose elections. By contrast, we observe little or no effect for pre-election protest risk. Model 8 shows no effect for regional protest diffusion on incumbent loss, while Model 9 shows a significant (p = 0.05) but substantively small effect for pre-election protest.  
+
+All told, this analysis supports the argument in the main text, which holds that the capacity to manipulate heavily is associated with incumbent durability. The results in this section are consistent with a world in which losing incumbents are not voluntarily surrendering power in the face of a committed opposition (on average), but are failing to produce sufficient election manipulation to win due to structural constraints. This should reduce the concern that the main findings are driven by an endogenous process, in which incumbents who face more organized and capable opposition actors are strategically avoiding protest by producing less fraud.
 
 
 ```{r, include=F, echo=FALSE, message=FALSE, warning=F}
@@ -493,8 +428,11 @@ new_frame <- new_frame %>% dplyr::select(.fitted, .rownames, .resid)
 
 nelda2.sub.fraudpred <- nelda2.sub.fraudpred %>% left_join(new_frame, by = ".rownames")
 
-model.lose <- glm(inc.lose ~ .fitted + regional_success_lag + n.events.pre, data = nelda2.sub.fraudpred, family = binomial(link="logit"))
-summary(model.lose)
+model.lose_reg <- glm(inc.lose ~ .fitted + regional_success_lag , data = nelda2.sub.fraudpred, family = binomial(link="logit"))
+summary(model.lose_reg)
+
+model.lose_events <- glm(inc.lose ~ .fitted + n.events.pre , data = nelda2.sub.fraudpred, family = binomial(link="logit"))
+summary(model.lose_events)
 
 model.fraud.resid <- lm(.resid ~ n.events.pre +  regional_success_lag , data = nelda2.sub.fraudpred)
 summary(model.fraud.resid)
@@ -504,9 +442,10 @@ summary(model.fraud.resid)
 models2 <- list()
 models2[['Model 6']] <- m.fraud.pred
 models2[['Model 7']] <- model.fraud.resid
-models2[['Model 8']] <- model.lose
+models2[['Model 8']] <- model.lose_reg
+models2[['Model 9']] <- model.lose_events
 
-row <- data.frame(cbind("", "Fraud", "Fraud residual", "Inc. loss"))
+row <- data.frame(cbind("", "Fraud", "Fraud residual", "Inc. loss", "Inc. loss"))
 attr(row, 'position') <- c(0)
 
 modelsummary(models2, output = "kableExtra",  stars = T, title = 'Models of manipulation and residuals (OLS) and incumbent loss (logit)', coef_omit = "as.factor", gof_omit = "RMSE|Log.", coef_rename = 
@@ -529,7 +468,7 @@ modelsummary(models2, output = "kableExtra",  stars = T, title = 'Models of mani
 ## Figure out how to Add a row beneath the model numbers, with the DV
 ```
 
-Table \@ref(tab:fraud-loss) shows the results. Model 6 shows how structural factors are predictors of the level of observed manipulation. We observe some expected results; for instance, more autonomous EMBs and more professionalized bureacuracies are associated with lower fraud. Model 7 shows that indicators of protest risk\textemdash the number of pre-election protests, and the existence of a recent successful protest movement in the region\textemdash are not associated with lower fraud. In fact, just the opposite: incumbents appear to manipulate more heavily under riskier conditions. This is initial evidence against the classic deterrent approach. Model 8 takes the fitted values from the first model and employs them as an explanatory variable for incumbent loss, while controlling for pre-election protest. As the latter model shows, the predicted level of fraud based on the incumbent's structural advantages is negatively associated with incumbent loss. This is supportive of the argument in the main text, which holds that the capacity to manipulate heavily is associated with incumbent durability. Altogether, the results in this section are consistent with a world in which losing incumbents are not voluntarily surrendering power in the face of a committed opposition (on average), but are failing to produce sufficient election manipulation to win due to structural constraints.
+
 
 
 
@@ -821,6 +760,95 @@ modelsummary(models2, output = "kableExtra",  stars = T, title = 'Table 3: Logit
 ```
 
 
+
+
+# Fraud and the likelihood of protest
+
+
+
+
+Table \@ref(tab:logit-table) shows the results for Hypothesis 1. Model 1 is a base model, where incumbent loss, winner vote-share, and *election fraud* are standalone variables. In keeping with the general (though inconsistent) findings in the prior literature, there is a significant positive relationship between fraud severity and the likelihood of protest initiation. The winner's claimed margin of victory is negatively associated with protest initiation. Model 2 includes the three-way interaction between *election fraud*, incumbent loss, and winning vote-share, with no controls other than a dummy variable for *presidential elections*. This allows for the largest possible sample size, and shows that the coefficient signs are consistent with those of the full Model 3. 
+
+
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+nelda2.sub <- nelda2.sub %>% mutate(any_protest = ifelse(d.events.num > 0, 1, 0))
+#nelda2.sub <- nelda2.sub %>% mutate(no_size = ifelse(max_size == 0, 1, 0))
+
+
+model.binary_noint <- glm(any_protest ~ inc.lose_clean + v2elirreg.inv + winner.share.upd, data = nelda2.sub, family = binomial(link = "logit"))
+
+model.binary.base <-  glm(any_protest ~ winner.share.upd*v2elirreg.inv*inc.lose_clean + presidential, data = nelda2.sub, family = binomial(link = "logit"))
+
+model.binary.full <- glm(any_protest ~ lji.lag + legcon.1lag + gdpgro.1lag + altinf.1lag  +  + osorg.1lag   +    winner.share.upd*v2elirreg.inv*inc.lose_clean   + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct + n.events.pre +  unscheduled_election + regional_success_lag, family = binomial(link = "logit"), data = nelda2.sub)
+
+
+
+
+
+
+plot_binary_margin_typ_n <- sjPlot::plot_model(model.binary.full, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [.08, 2.07]", "inc.lose_clean"))
+plot_binary_margin_typ_n <- plot_binary_margin_typ_n +  labs(x = "Winner's vote-share", y = "Predicted probability", title = "Predicted probability of protest", color = "Election fraud") + theme_bw()
+```
+
+
+
+```{r logit-table, echo=FALSE}
+models2 <- list()
+models2[['Model 1']] <- model.binary_noint
+models2[['Model 2']] <- model.binary.base
+models2[['Model 3']] <- model.binary.full
+#models2[['Model 6']] <- model.margin.binary_noc
+
+modelsummary(models2, output = "default",  stars = T, title = 'Table 3: Logit models of protest occurrence', gof_omit = c("Log|RMSE"), coef_map = c("(Intercept)" = "(Intercept)",
+             "inc.lose_clean2" = "Incumbent loss",
+             "v2elirreg.inv" = "Election fraud",
+             "winner.share.upd" = "Winner vote-share",
+"winner.share.upd:v2elirreg.inv" = "Winner vote-share:Election fraud",
+"winner.share.upd:inc.lose_clean2" = "Winner vote-share:Inc. loss",
+"v2elirreg.inv:inc.lose_clean2" = "Election fraud:Inc. loss",
+"winner.share.upd:v2elirreg.inv:inc.lose1" = "Election fraud:Winner vote-share:Inc. loss",
+  "lji.lag" = "Judical independence (lag)",                                                                 "legcon.1lag" = "Leg. constraints (lag)",                                                                 "gdpgro.1lag" = "GDP growth rate (lag)",                                                                   "altinf.1lag" = "Alternative info. (lag)", 
+                 "osorg.1lag" = "Civil soc. openness (lag)",
+                 "inc.termlimit.num" = "Incumbent term-limited", 
+                 "libdem.1lag" = "Liberal democracy index (lag)", 
+                 "urban.pct" = "Urbanization", 
+                 "rentierstate1" = "Rentier state", 
+                 "taxstate1" = "Tax state", 
+                "presidential1" = "Presidential",
+                 "unscheduled_election1" = "Off-schedule election",
+                 "n.events.pre" = "Number of pre-election protests", 
+                 "physinteg.1lag" = "Phys. integrity index (lag)",
+                 "physintlag.sq" = "Phys. int. lag squared", 
+                 "regional_success_lag" = "Regional protest diffusion",
+
+                 "median.participants" = "Median protest participants",
+ 
+                "v2elirreg.inv:winner.share.upd"= "Election fraud:Winner vote-share")
+                 ) 
+
+#reg_table |> tab_options(
+#  latex.use_longtable = TRUE, 
+#  data_row.padding = px(5)
+#  ) 
+```
+
+
+
+
+Model 3 is the main model, which includes the full set of controls. Given the complexity of the model, Figure \@ref(fig:margin-prob-fig) illustrates the effects of election fraud on protest risk across various levels of winning vote-share and incumbent loss^[All other variables constant at their means (continuous variables) or modes (categorical variables).]. The values for election fraud represent one standard deviation above and below the mean value, or about the 15th and 85th percentiles, respectively. 
+
+The direction of the effect supports Hypothesis 1. When an incumbent claims victory (left panel) and their vote-share is low, electoral protest is significantly likelier when fraud is elevated than when the election is relatively clean. Furthermore, protest against winning incumbents is significantly likelier when fraud is high and vote-shares are low, compared to an election with an equivalent level of fraud but high claimed vote-shares. As noted above, such a finding could be consistent with either the regime-weakness or regime-strength models of manipulation, under different conceptualizations of protest. To distinguish between the two, we turn to the models of protest duration.
+
+
+
+```{r margin-prob-fig, fig.cap="Fraud, winning vote-share, and probability of protest initiation", fig.height=5, echo=FALSE, message=FALSE, fig.pos='H'}
+plot_binary_margin_typ_n$data$facet <-  ifelse(plot_binary_margin_typ_n$data$facet == "1", "Incumbent won", "Incumbent lost")
+
+plot_binary_margin_typ_n
+```
 
 
 
