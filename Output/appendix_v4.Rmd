@@ -478,13 +478,13 @@ modelsummary(models2, output = "kableExtra",  stars = T, title = 'Models of mani
 
 \newpage
 
-# Incumbent defeat by protest
+## Incumbent defeat by protest
 
-The classic model of election manipulation as an indicator of weakness would suggest that incumbents who rely more on manipulation will be more likely to fall when protest movements do emerge. The main text does not examine successful protests, which are a small minority of cases, in order to avoid measurement error in the duration models. Successful protest is, instead, examined here; there is little to suggest that incumbents who manipulate more are more vulnerable to defeat by protesters.   
+A second possible source of selection bias in the main analysis sample is the decision to exclude cases where incumbents were defeated by protest movements. While this decision is necessary given the research design, it might still introduce bias if---for instance---many defeated incumbents manipulated heavily. The main text does not examine successful protests, which are a small minority of cases, but I include them in an analysis here. There is little to suggest that incumbents who manipulate more are more vulnerable to defeat by protesters.   
 
 First, Figure \@ref(fig:successplot) shows cases of 'successful' and unsuccessful protest at varying levels of election fraud. Protests are coded as successful if they lead to incumbent ouster or to new elections as recorded in NELDA. As the figure shows, the large majority of protests are unsuccessful by this measure. Moreover, the small number of successful cases appear spread over approximately the same range of election fraud as unsuccessful cases; we do not observe a clustering of successful protest at higher levels of fraud.  
 
-Next, Table \@ref(tab:oust-mods) reports three logit regression models of successful protest; the dataset for these models includes all cases with a least one protest event. Model 9 is a minimal model that includes *intentional election irregularities*, *incumbent vote-share* and a control for *presidential elections*. Model 10 includes a larger number of control variables, while Model 11 adds the interaction term. As the results in the table show, greater election manipulation is not associated with a higher likelihood of incumbent defeat in any model. Figure \@ref(fig:oust-plot) shows no significant effect of election manipulation on protest success across all values of incumbent vote-share.  Taken together, this is further disconfirmation of the fraud-as-weakness model.
+Next, Table \@ref(tab:oust-mods) reports three logit regression models of successful protest; the dataset for these models includes all cases with a least one protest event. Model 9 is a minimal model that includes *intentional election irregularities*, *incumbent vote-share* and a control for *presidential elections*. Model 10 includes a larger number of control variables, while Model 11 adds the interaction term. As the results in the table show, greater election manipulation is not associated with a higher likelihood of incumbent defeat in any model. Figure \@ref(fig:oust-plot) shows no significant effect of election manipulation on protest success across all values of incumbent vote-share.  Taken together, this is further evidence against the fraud-as-weakness model, and suggests the main results are not biased by excluding high-fraud cases where protesters toppled the government.
 
 
 
@@ -503,10 +503,10 @@ ggplot(protest.cases, aes(v2elirreg.inv, protest.success)) +
 
 ```{r oust-mods, echo=FALSE, message=FALSE, warning=FALSE}
 
-model.oust3 <- glm(protest.success ~  osorg.1lag + gdpgro.1lag  + winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct +   unscheduled_election + taxstate + rentierstate + regional_success_lag + v2elirreg.inv , family = binomial(link = "logit"), data = protest.cases %>% filter(inc.lose_clean == "1"))
+model.oust3 <- glm(protest.success ~  osorg.1lag + gdpgro.1lag  + winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct +   unscheduled_election +  regional_success_lag + v2elirreg.inv , family = binomial(link = "logit"), data = protest.cases %>% filter(inc.lose_clean == "1"))
 summary(model.oust3)
 
-model.oust4 <- glm(protest.success ~  osorg.1lag + gdpgro.1lag +  winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct +   unscheduled_election + taxstate + rentierstate + regional_success_lag +  v2elirreg.inv*winner.share.upd , family = binomial(link = "logit"),  data = protest.cases %>% filter(inc.lose_clean == "1"))
+model.oust4 <- glm(protest.success ~  osorg.1lag + gdpgro.1lag +  winner.share.upd  + presidential + inc.termlimit.num  +  physinteg.1lag + physintlag.sq + urban.pct +   unscheduled_election +  regional_success_lag +  v2elirreg.inv*winner.share.upd , family = binomial(link = "logit"),  data = protest.cases %>% filter(inc.lose_clean == "1"))
 summary(model.oust4)
 
 model.oust5 <- glm(protest.success ~  presidential +  v2elirreg.inv*winner.share.upd , family = binomial(link = "logit"),  data = protest.cases %>% filter(inc.lose_clean == "1"))
@@ -538,7 +538,7 @@ modelsummary(models2, output = "default",  stars = T, title = 'Logit models of i
 sjPlot::plot_model(model.oust5, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [-.4, 1.88]")) + labs(x = "Winner vote-share", y = "Pred. probability of successful protest", color = "Election fraud") + theme_bw() 
 ```
 
-# Chosen successors
+<!-- # Chosen successors
 
 The models in the main text control for the presence of term-limited executive incumbents, based on the logic in Hale [@hale_patronal_2014]. However, it could be the case that the nature of a term-limited election affects the behavior of protesters and election manipulators alike; that is, perhaps when there is a designated successor, the heir apparent is better able to mobilize the resources of the state to manipulate elections and suppress protest. Using a variable from NELDA that codes for designated successors, the following models add a categorical variable for the incumbent's status, which can take on the following values: *executive eligible*, *chosen successor*, *contested executive election*, and *legislative election*. Including this variables requires the exclusion of the original variables *presidential election* and *incumbent term limited*. 
 
@@ -595,7 +595,7 @@ plot.combined.prob
 
 \newpage
 
-
+-->
 
 # Removing controls to address multicollinearity
 
@@ -604,7 +604,7 @@ The models in the main text include a suite of control variables aimed at contro
 The results echo those from the main text. Fraudulent elections are associated with a higher risk of protest initiation at low levels of ruling-party vote-share (Figure \@ref(fig:margin-prob-fig-small)), though these same conditions are associated with a higher likelihood that protest movements will fail quickly \@ref(fig:margin-dur-fig-small).
 
 
-```{r include=FALSE, echo=FALSE}
+```{r include=FALSE, echo=FALSE, include=FALSE}
 nelda2.sub <- nelda2.sub %>% mutate(any_protest = ifelse(d.events.num > 0, 1, 0))
 #nelda2.sub <- nelda2.sub %>% mutate(no_size = ifelse(max_size == 0, 1, 0))
 
@@ -634,7 +634,7 @@ plot_binary_margin_typ_n <- plot_binary_margin_typ_n +  labs(x = "Incumbent vote
 
 \newpage
 
-```{r logit-table-small, echo=FALSE}
+```{r logit-table-small, echo=FALSE, include=FALSE}
 models2 <- list()
 models2[['Model 15']] <- model.margin.binary
 models2[['Model 16']] <- model.margin.binary.int
@@ -657,14 +657,14 @@ modelsummary(models2, output = "kableExtra",  stars = T, title = 'Logit models o
 
 \newpage
 
-```{r margin-prob-fig-small, fig.cap="Fraud, winning vote-share, and probability of protest initiation", fig.height=5, echo=FALSE, message=FALSE, fig.pos='H'}
+```{r margin-prob-fig-small, fig.cap="Fraud, winning vote-share, and probability of protest initiation", fig.height=5, echo=FALSE, message=FALSE, fig.pos='H', include=FALSE}
 plot_binary_margin_typ_n
 ```
 
 
 
 
-```{r, include=FALSE, echo=FALSE}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 library(survival)
 library(ggsurvfit)
 nelda2.sub <- nelda2.sub %>% mutate(surv_status = ifelse(d.events.num > 0, 1, NA))
@@ -683,7 +683,7 @@ cox1 <- coxph(Surv(d.events.num, surv_status) ~   winner.share.upd  + presidenti
 
 
 cox2 <- coxph(Surv(d.events.num, surv_status) ~  v2elirreg.inv*winner.share.upd  + presidential + inc.termlimit.num  +   unscheduled_election + regional_success_lag +  n.events.post, data = nelda2.sub %>% filter(inc.lose == "0") %>% filter(d.events.num > 0 & inc.replaced.prot == 0))
-#summary(cox2)
+summary(cox2)
 p.duration.margin <- sjPlot::plot_model(cox2, type = "pred", terms = c("winner.share.upd", "v2elirreg.inv [-.05, 2]"))  #This is the 10th and 90th quantiles
 p.duration.margin <- p.duration.margin +  labs(x = "Incumbent vote-share", y = "Hazard ratio", title = "Hazard ratio for protest movement end", color = "Election fraud") + theme_bw()
 
@@ -717,7 +717,7 @@ p.duration.margin
 
 \newpage
 
-
+<!--
 # Using country fixed effects
 
 Models that include fixed effects by country can be used to estimate the effects of explanatory variables within countries, rather than being driven by a subset of cases where fraud and protest both tend to be high (for example). Table \@ref(tab:logit-table-fe), where logit models of protest initiation are presented, shows results consistent with those in the main text. Fraud alone has no significant relationship with protest initiation, but it does in the context of low incumbent vote-share. Fixed effects models are not employed for the proportional hazards models of protest survival; due to the small number of cases for which multiple protest waves occur, there is insufficient within-country variation to make use of such models.  
@@ -759,7 +759,7 @@ modelsummary(models2, output = "kableExtra",  stars = T, title = 'Table 3: Logit
                  ), add_rows = data.frame(cbind("Country fixed effects", "Y", "Y"))) %>% kable_styling(latex_options = "HOLD_position")
 ```
 
-
+-->
 
 
 # Fraud and the likelihood of protest
