@@ -164,33 +164,12 @@ This argument\textemdash that successful, large-scale election manipulation draw
 The central argument of this manuscript is that, in authoritarian regimes, incumbents who develop the tools necessary to manipulate elections extensively will also have the tools necessary to more quickly prevail over protest movements. This proposition builds off Simpser's foundational argument that manipulated elections can send costly signals of the incumbent's "capacities, resources, [and] dispositions" that will help it retain power in the future [@simpser2013, p. 80]---that is, of its political strength. However, I depart from Simpser in two ways. First, by incorporating more recent research on the principal-agent dynamics inherent in election manipulation, I argue that incumbents who can produce large amounts of election manipulation necessarily have "capacities, resources and dispositions" helpful for defeating protests---a peripheral subject for Simpser. Second, mine is not a signalling argument with regard to protesters (though the election outcome may still communicate signals of regime strength to, for instance, state agents deciding how to respond to the protest movement). I argue that electoral protest may occur for many reasons, even when incumbents are perceived to be 'strong.' However, good manipulators are likely to have deeper wells of strength than ineffective manipulators do, even when they fail to 'deter' post-election protest. This is due, in part, to the regime resources and cohesiveness that widespread election manipulation requires, and in part due to the fact that widespread manipulation is a costly signal of such capacities. 
 
 
-
 It is likely that the theoretical mechanisms described above weaken as regimes become more liberal-democratic, as Simpser notes [-@simpser2013, p. 192]; in liberal democracies, patronage consolidation should decline and rule of law should increase by definition. These changes should make it more difficult for incumbents to manipulate elections, irrespective of protest risk. At the same time, the more liberal-democratic a state becomes, the more alternatives there are to protest as a means to check the executive. More independent courts and more active executive constraints have been shown to be associated with improved election integrity [@Harvey2022;@Bishop2016a]; it is where these factors are weakest---the electoral authoritarian regimes---where we should expect the deterrence logic to operate under a regime-weakness model. Finally, as a matter of measurement, protest duration is likely to be an increasingly imperfect measure of incumbent strength in more liberal-democratic settings, where protest is more commonplace and less immediately threatening to the regime.
 
-## Empirical implications: vote-share vs. genuine popularity
+This model claims that more extensive illicit manipulation serves as a costly signal or regime strength that helps induce elite loyalty during post-election challenges. As such, it also makes a distinctive prediction about how incumbents should respond to the possibility of post-election contestation. Rather than back down in the face of protest risk, as regime-weakness models predict, the regime-strength model suggests that incumbents should work to intensify manipulation. By doing so, they can send a more convincing signal of their staying power to elites, preventing defections, and ultimately *reducing* the risk that the incumbent will lose office.
 
+>*H2 (Signaling to induce loyalty)*: Electoral manipulation should increase with pre-election indicators of protest risk.
 
-
-
-
-
-
-
-
-
-
-```{r theoryfig, echo=FALSE, fig.cap="A classic theory of election manipulation and protest", out.width="90%", fig.align='center', eval=FALSE}
-knitr::include_graphics("theory_comp.drawio.png")
-
-```
-
-
-
-It is important to note that the theories make contradictory predictions. H1 predicts an unconditional *positive* relationship between manipulation and protest duration, while H2 predicts a *negative* relationship, conditional on vote-share. 
-
-
-
-NOTE FROM BOOK:
 
 In other words, the theory predicts that *incubments should manipulate more when they face strong oppositions*, rather than moderate their behavior, as conventional wisdom might hold, and that when post-election protests do occur, *greater electoral manipulation will be associated with quicker defeat of protest movements.*
 
